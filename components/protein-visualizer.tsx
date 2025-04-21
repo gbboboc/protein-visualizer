@@ -2,7 +2,7 @@
 
 import type React from "react";
 import { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,6 +34,7 @@ import {
   BarChart2,
   Layers,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 import ProteinModel from "@/components/protein-model";
 import ProteinAnalysis from "@/components/protein-analysis";
@@ -43,6 +44,14 @@ import ExportOptions from "@/components/export-options";
 import { getPublicProteins, saveProtein } from "@/app/actions";
 
 export type Direction = "left" | "right" | "up" | "down";
+
+export type VisualizationType =
+  | "3d"
+  | "2d"
+  | "ribbon"
+  | "space-filling"
+  | "surface";
+
 export type ProteinSequence = {
   id?: number;
   name?: string;
@@ -55,9 +64,8 @@ const ProteinVisualizer = () => {
   const [directions, setDirections] = useState<string>("");
   const [proteinName, setProteinName] = useState<string>("My Protein");
   const [proteinData, setProteinData] = useState<ProteinSequence | null>(null);
-  const [visualizationType, setVisualizationType] = useState<
-    "2d" | "3d" | "ribbon" | "space-filling" | "stick" | "surface"
-  >("3d");
+  const [visualizationType, setVisualizationType] =
+    useState<VisualizationType>("3d");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [savedProteins, setSavedProteins] = useState<ProteinSequence[]>([]);
@@ -65,6 +73,7 @@ const ProteinVisualizer = () => {
     ProteinSequence[]
   >([]);
   const { toast } = useToast();
+  const { data: session } = useSession();
 
   // Load saved proteins from database on initial render
   useEffect(() => {
@@ -75,7 +84,13 @@ const ProteinVisualizer = () => {
           throw new Error(error);
         }
         if (data) {
-          setSavedProteins(data);
+          const convertedData = data.map((protein) => ({
+            ...protein,
+            directions: protein.directions
+              ? (protein.directions.split("-") as Direction[])
+              : undefined,
+          }));
+          setSavedProteins(convertedData);
         }
       } catch (error) {
         console.error("Error fetching saved proteins:", error);
@@ -155,32 +170,43 @@ const ProteinVisualizer = () => {
   };
 
   const handleSaveProtein = async () => {
+    if (!session?.user?.id) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to save proteins",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!proteinData) return;
 
     setLoading(true);
     try {
-      const { data, error } = await saveProtein({
-        userId: 1, // In a real app, this would be the authenticated user's ID
-        name: proteinName,
-        sequence: proteinData.sequence,
-        description: `HP protein with ${proteinData.sequence.length} residues`,
-        isPublic: true,
-        directions: proteinData.directions
-          ? proteinData.directions.join("-")
-          : undefined,
+      const response = await fetch("/api/proteins", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: proteinName,
+          sequence: proteinData.sequence,
+          directions: proteinData.directions,
+          isPublic: true,
+          userId: session.user.id,
+        }),
       });
 
-      if (error) {
-        throw new Error(error);
+      if (!response.ok) {
+        throw new Error("Failed to save protein to database");
       }
 
-      if (data) {
-        setSavedProteins((prev) => [...prev, data]);
-        toast({
-          title: "Protein Saved",
-          description: `${proteinName} has been saved to the database.`,
-        });
-      }
+      const data = await response.json();
+      setSavedProteins((prev) => [...prev, data]);
+      toast({
+        title: "Protein Saved",
+        description: `${proteinName} has been saved to the database.`,
+      });
     } catch (error) {
       console.error("Error saving protein:", error);
       toast({
@@ -193,19 +219,19 @@ const ProteinVisualizer = () => {
     }
   };
 
-  const handleAddToComparison = () => {
-    if (!proteinData) return;
+  const handleAddToComparison = (protein: ProteinSequence) => {
+    if (!protein) return;
 
     // Check if protein is already in comparison
     const exists = comparisonProteins.some(
-      (p) => p.sequence === proteinData.sequence
+      (p) => p.sequence === protein.sequence
     );
 
     if (!exists) {
-      setComparisonProteins((prev) => [...prev, proteinData]);
+      setComparisonProteins((prev) => [...prev, protein]);
       toast({
         title: "Added to Comparison",
-        description: `${proteinName} has been added to the comparison list.`,
+        description: `${protein.name} has been added to the comparison list.`,
       });
     } else {
       toast({
@@ -235,7 +261,16 @@ const ProteinVisualizer = () => {
     });
   };
 
-  const handleSaveExport = async (exportType: string, fileName: string) => {
+  const handleSaveExport = async () => {
+    if (!session?.user?.id) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to save exports",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!proteinData) return;
 
     try {
@@ -245,10 +280,9 @@ const ProteinVisualizer = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          userId: 1, // In a real app, this would be the authenticated user's ID
-          proteinId: proteinData.id || 0,
-          exportType,
-          filePath: fileName,
+          proteinId: proteinData.id,
+          exportType: "pdb",
+          userId: session.user.id,
         }),
       });
 
@@ -260,7 +294,16 @@ const ProteinVisualizer = () => {
     }
   };
 
-  const handleSaveComparison = async (name: string, description: string) => {
+  const handleSaveComparison = async () => {
+    if (!session?.user?.id) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to save comparisons",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (comparisonProteins.length < 2) return;
 
     try {
@@ -270,17 +313,15 @@ const ProteinVisualizer = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          userId: 1, // In a real app, this would be the authenticated user's ID
-          name,
-          description,
-          proteinIds: comparisonProteins.map((p) => p.id).filter(Boolean),
+          proteins: comparisonProteins,
+          userId: session.user.id,
         }),
       });
 
       if (response.ok) {
         toast({
           title: "Comparison Saved",
-          description: `${name} has been saved to the database.`,
+          description: `${proteinName} has been saved to the database.`,
         });
       } else {
         throw new Error("Failed to save comparison");
@@ -369,7 +410,9 @@ const ProteinVisualizer = () => {
                   <Label htmlFor="visualizationType">Visualization Type</Label>
                   <Select
                     value={visualizationType}
-                    onValueChange={(value: any) => setVisualizationType(value)}
+                    onValueChange={(value: VisualizationType) =>
+                      setVisualizationType(value)
+                    }
                   >
                     <SelectTrigger id="visualizationType" className="w-full">
                       <SelectValue placeholder="Select visualization type" />
@@ -381,7 +424,6 @@ const ProteinVisualizer = () => {
                       <SelectItem value="space-filling">
                         Space Filling
                       </SelectItem>
-                      <SelectItem value="stick">Stick</SelectItem>
                       <SelectItem value="surface">Surface</SelectItem>
                     </SelectContent>
                   </Select>
@@ -456,14 +498,26 @@ const ProteinVisualizer = () => {
                 )}
               </TabsContent>
 
-              <TabsContent
-                value="energy"
-                className="mt-4 h-[500px] overflow-y-auto"
-              >
-                <EnergyMinimization
-                  sequence={proteinData?.sequence || ""}
-                  onOptimizationComplete={handleOptimizationComplete}
-                />
+              <TabsContent value="energy" className="space-y-4">
+                {proteinData ? (
+                  <EnergyMinimization
+                    sequence={proteinData.sequence}
+                    initialDirections={proteinData.directions}
+                    onOptimizationComplete={handleOptimizationComplete}
+                  />
+                ) : (
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex flex-col items-center justify-center space-y-4 py-8">
+                        <p className="text-gray-600 text-center">
+                          Please provide a protein sequence to perform energy
+                          minimization. The sequence should consist of H
+                          (hydrophobic) and P (polar) residues.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
               <TabsContent

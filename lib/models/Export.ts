@@ -2,29 +2,35 @@ import mongoose from 'mongoose'
 
 const exportSchema = new mongoose.Schema({
   userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+  name: {
+    type: String,
+    required: true,
+  },
+  description: {
+    type: String,
+    default: '',
+  },
+  format: {
+    type: String,
+    required: true,
+    enum: ['pdb', 'csv', 'json'],
+  },
+  data: {
     type: String,
     required: true,
   },
   proteinId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Protein',
-  },
-  exportType: {
-    type: String,
     required: true,
   },
-  filePath: {
-    type: String,
-    required: true,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  },
+}, {
+  timestamps: true,
+  versionKey: false
 })
 
 const Export = mongoose.models.Export || mongoose.model('Export', exportSchema)

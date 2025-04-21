@@ -15,7 +15,7 @@ import type * as THREE from "three";
 interface ProteinModelProps {
   sequence: string;
   directions?: Direction[];
-  type: "2d" | "3d" | "ribbon" | "space-filling" | "stick" | "surface";
+  type: "2d" | "3d" | "ribbon" | "space-filling" | "surface";
 }
 
 interface Position {
@@ -192,64 +192,6 @@ const ProteinModel: React.FC<ProteinModelProps> = ({
               <meshStandardMaterial
                 color={sequence[index] === "H" ? "#ff6b6b" : "#4dabf7"}
                 roughness={0.3}
-              />
-            </Sphere>
-          ))}
-        </>
-      ) : type === "stick" ? (
-        <>
-          {/* Render bonds as cylinders */}
-          {bonds.map(([i, j], index) => {
-            const start = [positions[i].x, positions[i].y, positions[i].z];
-            const end = [positions[j].x, positions[j].y, positions[j].z];
-            const mid = [
-              (start[0] + end[0]) / 2,
-              (start[1] + end[1]) / 2,
-              (start[2] + end[2]) / 2,
-            ];
-
-            // Calculate direction and length
-            const direction = [
-              end[0] - start[0],
-              end[1] - start[1],
-              end[2] - start[2],
-            ];
-            const length = Math.sqrt(
-              direction[0] ** 2 + direction[1] ** 2 + direction[2] ** 2
-            );
-
-            // Calculate rotation
-            const quaternion = new THREE.Quaternion();
-            const upVector = new THREE.Vector3(0, 1, 0);
-            const directionVector = new THREE.Vector3(
-              direction[0],
-              direction[1],
-              direction[2]
-            ).normalize();
-            quaternion.setFromUnitVectors(upVector, directionVector);
-
-            return (
-              <group
-                key={`bond-${index}`}
-                position={[mid[0], mid[1], mid[2]]}
-                quaternion={quaternion}
-              >
-                <Cylinder args={[0.1, 0.1, length, 8]}>
-                  <meshStandardMaterial color="gray" />
-                </Cylinder>
-              </group>
-            );
-          })}
-
-          {/* Render amino acids as small spheres */}
-          {positions.map((pos, index) => (
-            <Sphere
-              key={`atom-${index}`}
-              position={[pos.x, pos.y, pos.z]}
-              args={[0.2, 16, 16]}
-            >
-              <meshStandardMaterial
-                color={sequence[index] === "H" ? "#ff6b6b" : "#4dabf7"}
               />
             </Sphere>
           ))}

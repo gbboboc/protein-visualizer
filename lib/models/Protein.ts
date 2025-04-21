@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import mongoose from 'mongoose'
 
 interface IProtein extends Document {
   userId: mongoose.Types.ObjectId
@@ -11,9 +11,9 @@ interface IProtein extends Document {
   updatedAt: Date
 }
 
-const proteinSchema = new Schema({
+const proteinSchema = new mongoose.Schema({
   userId: {
-    type: Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
   },
@@ -27,14 +27,15 @@ const proteinSchema = new Schema({
   },
   description: {
     type: String,
-    required: true,
+    default: '',
   },
   isPublic: {
     type: Boolean,
-    default: true,
+    default: false,
   },
   directions: {
     type: String,
+    required: true,
   },
 }, {
   timestamps: true, // This will automatically manage createdAt and updatedAt

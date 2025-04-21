@@ -25,8 +25,15 @@ export interface ProteinData {
   directions?: string[];
 }
 
+interface ProteinSequence {
+  id?: number;
+  name?: string;
+  sequence: string;
+  directions?: string[];
+}
+
 interface ProteinComparisonProps {
-  proteins: ProteinData[];
+  proteins: ProteinSequence[];
   onSaveComparison?: (name: string, description: string) => void;
 }
 
@@ -35,7 +42,7 @@ const ProteinComparison: React.FC<ProteinComparisonProps> = ({
   onSaveComparison,
 }) => {
   const [visualizationType, setVisualizationType] = useState<
-    "2d" | "3d" | "ribbon" | "space-filling" | "stick" | "surface"
+    "2d" | "3d" | "ribbon" | "space-filling" | "surface"
   >("3d");
   const [comparisonName, setComparisonName] = useState("");
 
@@ -113,7 +120,6 @@ const ProteinComparison: React.FC<ProteinComparisonProps> = ({
                 <SelectItem value="3d">3D Model</SelectItem>
                 <SelectItem value="ribbon">Ribbon</SelectItem>
                 <SelectItem value="space-filling">Space Filling</SelectItem>
-                <SelectItem value="stick">Stick Model</SelectItem>
                 <SelectItem value="surface">Surface</SelectItem>
               </SelectContent>
             </Select>

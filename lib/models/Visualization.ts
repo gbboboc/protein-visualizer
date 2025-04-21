@@ -18,7 +18,7 @@ const visualizationSchema = new Schema({
   visualizationType: {
     type: String,
     required: true,
-    enum: ['2d', '3d', 'ribbon', 'space-filling', 'stick', 'surface'],
+    enum: ['2d', '3d', 'ribbon', 'space-filling', 'surface'],
   },
   foldingDirections: {
     type: String,
