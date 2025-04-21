@@ -1,20 +1,27 @@
-import type { Metadata } from 'next'
-import './globals.css'
+import type { Metadata } from "next";
+import "./globals.css";
+import { BrowserAttributes } from "@/components/browser-attributes";
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.dev',
-}
+  title: "HP Protein Visualizer",
+  description: "A tool for visualizing and analyzing HP protein folding",
+  generator: "Next.js",
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className="min-h-screen bg-background antialiased"
+        suppressHydrationWarning
+      >
+        <BrowserAttributes />
+        {children}
+      </body>
     </html>
-  )
+  );
 }

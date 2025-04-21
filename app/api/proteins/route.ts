@@ -1,35 +1,36 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { db, executeQuery } from "@/lib/db"
-import { proteins } from "@/lib/schema"
-import { eq } from "drizzle-orm"
+import connectDB from "@/lib/mongodb"
+import Protein from "@/lib/models/Protein"
+import { convertDocToObj } from "@/lib/utils"
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams
-  const userId = searchParams.get("userId")
-  const isPublic = searchParams.get("isPublic") === "true"
+  try {
+    await connectDB()
+    const searchParams = request.nextUrl.searchParams
+    const userId = searchParams.get("userId")
+    const isPublic = searchParams.get("isPublic") === "true"
 
-  const result = await executeQuery(async () => {
+    let query = {}
     if (userId) {
-      return await db
-        .select()
-        .from(proteins)
-        .where(eq(proteins.userId, Number.parseInt(userId)))
+      query = { userId }
     } else if (isPublic) {
-      return await db.select().from(proteins).where(eq(proteins.isPublic, true))
-    } else {
-      return await db.select().from(proteins)
+      query = { isPublic: true }
     }
-  })
 
-  if (result.error) {
-    return NextResponse.json({ error: result.error }, { status: 500 })
+    const proteins = await Protein.find(query).sort({ createdAt: -1 })
+    return NextResponse.json(convertDocToObj(proteins))
+  } catch (error) {
+    console.error("Error fetching proteins:", error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to fetch proteins" },
+      { status: 500 }
+    )
   }
-
-  return NextResponse.json(result.data)
 }
 
 export async function POST(request: NextRequest) {
   try {
+    await connectDB()
     const body = await request.json()
     const { userId, name, sequence, description, isPublic } = body
 
@@ -37,25 +38,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    const result = await executeQuery(async () => {
-      return await db
-        .insert(proteins)
-        .values({
-          userId,
-          name,
-          sequence,
-          description,
-          isPublic: isPublic || false,
-        })
-        .returning()
+    const protein = new Protein({
+      userId,
+      name,
+      sequence,
+      description,
+      isPublic: isPublic || false,
     })
 
-    if (result.error) {
-      return NextResponse.json({ error: result.error }, { status: 500 })
-    }
-
-    return NextResponse.json(result.data)
+    const savedProtein = await protein.save()
+    return NextResponse.json(convertDocToObj(savedProtein))
   } catch (error) {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
+    console.error("Error saving protein:", error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to save protein" },
+      { status: 500 }
+    )
   }
 }

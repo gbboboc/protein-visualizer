@@ -1,31 +1,32 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { db, executeQuery } from "@/lib/db"
-import { energySimulations } from "@/lib/schema"
+import connectDB from "@/lib/mongodb"
+import EnergySimulation from "@/lib/models/EnergySimulation"
+import { convertDocToObj } from "@/lib/utils"
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams
-  const proteinId = searchParams.get("proteinId")
+  try {
+    await connectDB()
+    const searchParams = request.nextUrl.searchParams
+    const proteinId = searchParams.get("proteinId")
 
-  const result = await executeQuery(async () => {
-    if (proteinId) {
-      return await db
-        .select()
-        .from(energySimulations)
-        .where(eq(energySimulations.proteinId, Number.parseInt(proteinId)))
-    } else {
-      return await db.select().from(energySimulations)
-    }
-  })
+    const query = proteinId ? { proteinId } : {}
+    const simulations = await EnergySimulation.find(query)
+      .populate('proteinId')
+      .sort({ createdAt: -1 })
 
-  if (result.error) {
-    return NextResponse.json({ error: result.error }, { status: 500 })
+    return NextResponse.json(convertDocToObj(simulations))
+  } catch (error) {
+    console.error("Error fetching energy simulations:", error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to fetch energy simulations" },
+      { status: 500 }
+    )
   }
-
-  return NextResponse.json(result.data)
 }
 
 export async function POST(request: NextRequest) {
   try {
+    await connectDB()
     const body = await request.json()
     const {
       proteinId,
@@ -42,28 +43,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    const result = await executeQuery(async () => {
-      return await db
-        .insert(energySimulations)
-        .values({
-          proteinId,
-          algorithmType,
-          initialEnergy,
-          finalEnergy,
-          iterations,
-          temperature,
-          resultSequence,
-          resultDirections,
-        })
-        .returning()
+    const simulation = new EnergySimulation({
+      proteinId,
+      algorithmType,
+      initialEnergy,
+      finalEnergy,
+      iterations,
+      temperature,
+      resultSequence,
+      resultDirections,
     })
 
-    if (result.error) {
-      return NextResponse.json({ error: result.error }, { status: 500 })
-    }
-
-    return NextResponse.json(result.data)
+    const savedSimulation = await simulation.save()
+    const populatedSimulation = await EnergySimulation.findById(savedSimulation._id).populate('proteinId')
+    
+    return NextResponse.json(convertDocToObj(populatedSimulation))
   } catch (error) {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
+    console.error("Error saving energy simulation:", error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to save energy simulation" },
+      { status: 500 }
+    )
   }
 }

@@ -1,83 +1,99 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Canvas } from "@react-three/fiber"
-import { OrbitControls } from "@react-three/drei"
-import ProteinModel from "./protein-model"
-import { Progress } from "@/components/ui/progress"
-import { Download, Save } from "lucide-react"
+import type React from "react";
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
+import ProteinModel from "./protein-model";
+import { Progress } from "@/components/ui/progress";
+import { Download, Save } from "lucide-react";
 
 export interface ProteinData {
-  id?: number
-  name: string
-  sequence: string
-  directions?: string[]
+  id?: number;
+  name: string;
+  sequence: string;
+  directions?: string[];
 }
 
 interface ProteinComparisonProps {
-  proteins: ProteinData[]
-  onSaveComparison?: (name: string, description: string) => void
+  proteins: ProteinData[];
+  onSaveComparison?: (name: string, description: string) => void;
 }
 
-const ProteinComparison: React.FC<ProteinComparisonProps> = ({ proteins, onSaveComparison }) => {
+const ProteinComparison: React.FC<ProteinComparisonProps> = ({
+  proteins,
+  onSaveComparison,
+}) => {
   const [visualizationType, setVisualizationType] = useState<
     "2d" | "3d" | "ribbon" | "space-filling" | "stick" | "surface"
-  >("3d")
-  const [comparisonName, setComparisonName] = useState("")
+  >("3d");
+  const [comparisonName, setComparisonName] = useState("");
 
   if (proteins.length < 2) {
     return (
       <Card>
         <CardContent className="pt-6">
-          <p className="text-center text-gray-500">Select at least two proteins to compare</p>
+          <p className="text-center text-gray-500">
+            Select at least two proteins to compare
+          </p>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   // Calculate similarity score (simple implementation)
   const calculateSimilarity = (seq1: string, seq2: string) => {
-    const minLength = Math.min(seq1.length, seq2.length)
-    let matches = 0
+    const minLength = Math.min(seq1.length, seq2.length);
+    let matches = 0;
 
     for (let i = 0; i < minLength; i++) {
       if (seq1[i] === seq2[i]) {
-        matches++
+        matches++;
       }
     }
 
-    return (matches / minLength) * 100
-  }
+    return (matches / minLength) * 100;
+  };
 
   // Calculate similarity matrix
   const similarityMatrix = proteins.map((p1, i) =>
-    proteins.map((p2, j) => (i === j ? 100 : calculateSimilarity(p1.sequence, p2.sequence))),
-  )
+    proteins.map((p2, j) =>
+      i === j ? 100 : calculateSimilarity(p1.sequence, p2.sequence)
+    )
+  );
 
   // Calculate sequence statistics
   const calculateStats = (sequence: string) => {
-    const hydrophobicCount = (sequence.match(/H/g) || []).length
-    const polarCount = (sequence.match(/P/g) || []).length
+    const hydrophobicCount = (sequence.match(/H/g) || []).length;
+    const polarCount = (sequence.match(/P/g) || []).length;
     return {
       length: sequence.length,
       hydrophobicCount,
       polarCount,
       hydrophobicPercentage: (hydrophobicCount / sequence.length) * 100,
       polarPercentage: (polarCount / sequence.length) * 100,
-    }
-  }
+    };
+  };
 
   const handleSaveComparison = () => {
     if (onSaveComparison && comparisonName) {
-      onSaveComparison(comparisonName, `Comparison of ${proteins.map((p) => p.name).join(", ")}`)
-      setComparisonName("")
+      onSaveComparison(
+        comparisonName,
+        `Comparison of ${proteins.map((p) => p.name).join(", ")}`
+      );
+      setComparisonName("");
     }
-  }
+  };
 
   return (
     <Card className="w-full">
@@ -85,7 +101,10 @@ const ProteinComparison: React.FC<ProteinComparisonProps> = ({ proteins, onSaveC
         <CardTitle className="flex justify-between items-center">
           <span>Protein Comparison</span>
           <div className="flex items-center gap-2">
-            <Select value={visualizationType} onValueChange={(value: any) => setVisualizationType(value)}>
+            <Select
+              value={visualizationType}
+              onValueChange={(value: any) => setVisualizationType(value)}
+            >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Visualization Type" />
               </SelectTrigger>
@@ -112,8 +131,13 @@ const ProteinComparison: React.FC<ProteinComparisonProps> = ({ proteins, onSaveC
           <TabsContent value="visual" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {proteins.map((protein, index) => (
-                <div key={index} className="h-[300px] bg-gray-50 rounded-md overflow-hidden">
-                  <div className="bg-gray-100 p-2 text-sm font-medium">{protein.name}</div>
+                <div
+                  key={index}
+                  className="h-[300px] bg-gray-50 rounded-md overflow-hidden"
+                >
+                  <div className="bg-gray-100 p-2 text-sm font-medium">
+                    {protein.name}
+                  </div>
                   <Canvas>
                     <ambientLight intensity={0.5} />
                     <directionalLight position={[10, 10, 10]} intensity={1} />
@@ -121,7 +145,7 @@ const ProteinComparison: React.FC<ProteinComparisonProps> = ({ proteins, onSaveC
                     <ProteinModel
                       sequence={protein.sequence}
                       directions={protein.directions?.map((d) => d as any)}
-                      visualizationType={visualizationType}
+                      type={visualizationType}
                     />
                   </Canvas>
                 </div>
@@ -137,7 +161,11 @@ const ProteinComparison: React.FC<ProteinComparisonProps> = ({ proteins, onSaveC
                   value={comparisonName}
                   onChange={(e) => setComparisonName(e.target.value)}
                 />
-                <Button size="sm" onClick={handleSaveComparison} disabled={!comparisonName}>
+                <Button
+                  size="sm"
+                  onClick={handleSaveComparison}
+                  disabled={!comparisonName}
+                >
                   <Save className="w-4 h-4 mr-1" /> Save Comparison
                 </Button>
               </div>
@@ -149,7 +177,7 @@ const ProteinComparison: React.FC<ProteinComparisonProps> = ({ proteins, onSaveC
 
           <TabsContent value="sequence" className="space-y-4">
             {proteins.map((protein, index) => {
-              const stats = calculateStats(protein.sequence)
+              const stats = calculateStats(protein.sequence);
               return (
                 <Card key={index}>
                   <CardContent className="pt-6">
@@ -157,18 +185,24 @@ const ProteinComparison: React.FC<ProteinComparisonProps> = ({ proteins, onSaveC
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       <div className="bg-gray-50 p-2 rounded-md">
                         <div className="text-sm text-gray-500">Length</div>
-                        <div className="text-lg font-medium">{stats.length}</div>
+                        <div className="text-lg font-medium">
+                          {stats.length}
+                        </div>
                       </div>
                       <div className="bg-gray-50 p-2 rounded-md">
-                        <div className="text-sm text-gray-500">Hydrophobic (H)</div>
+                        <div className="text-sm text-gray-500">
+                          Hydrophobic (H)
+                        </div>
                         <div className="text-lg font-medium">
-                          {stats.hydrophobicCount} ({stats.hydrophobicPercentage.toFixed(1)}%)
+                          {stats.hydrophobicCount} (
+                          {stats.hydrophobicPercentage.toFixed(1)}%)
                         </div>
                       </div>
                       <div className="bg-gray-50 p-2 rounded-md">
                         <div className="text-sm text-gray-500">Polar (P)</div>
                         <div className="text-lg font-medium">
-                          {stats.polarCount} ({stats.polarPercentage.toFixed(1)}%)
+                          {stats.polarCount} ({stats.polarPercentage.toFixed(1)}
+                          %)
                         </div>
                       </div>
                     </div>
@@ -176,9 +210,12 @@ const ProteinComparison: React.FC<ProteinComparisonProps> = ({ proteins, onSaveC
                     <div className="space-y-2">
                       <div>
                         <div className="flex justify-between mb-1">
-                          <span className="text-sm font-medium text-gray-700">Hydrophobic (H)</span>
                           <span className="text-sm font-medium text-gray-700">
-                            {stats.hydrophobicCount} ({stats.hydrophobicPercentage.toFixed(1)}%)
+                            Hydrophobic (H)
+                          </span>
+                          <span className="text-sm font-medium text-gray-700">
+                            {stats.hydrophobicCount} (
+                            {stats.hydrophobicPercentage.toFixed(1)}%)
                           </span>
                         </div>
                         <Progress
@@ -189,9 +226,12 @@ const ProteinComparison: React.FC<ProteinComparisonProps> = ({ proteins, onSaveC
                       </div>
                       <div>
                         <div className="flex justify-between mb-1">
-                          <span className="text-sm font-medium text-gray-700">Polar (P)</span>
                           <span className="text-sm font-medium text-gray-700">
-                            {stats.polarCount} ({stats.polarPercentage.toFixed(1)}%)
+                            Polar (P)
+                          </span>
+                          <span className="text-sm font-medium text-gray-700">
+                            {stats.polarCount} (
+                            {stats.polarPercentage.toFixed(1)}%)
                           </span>
                         </div>
                         <Progress
@@ -221,7 +261,7 @@ const ProteinComparison: React.FC<ProteinComparisonProps> = ({ proteins, onSaveC
                     </div>
                   </CardContent>
                 </Card>
-              )
+              );
             })}
           </TabsContent>
 
@@ -243,7 +283,12 @@ const ProteinComparison: React.FC<ProteinComparisonProps> = ({ proteins, onSaveC
                     <tr key={i}>
                       <th className="border p-2 bg-gray-50">{protein.name}</th>
                       {similarityMatrix[i].map((similarity, j) => (
-                        <td key={j} className={`border p-2 text-center ${i === j ? "bg-gray-100" : ""}`}>
+                        <td
+                          key={j}
+                          className={`border p-2 text-center ${
+                            i === j ? "bg-gray-100" : ""
+                          }`}
+                        >
                           {similarity.toFixed(1)}%
                         </td>
                       ))}
@@ -256,7 +301,7 @@ const ProteinComparison: React.FC<ProteinComparisonProps> = ({ proteins, onSaveC
         </Tabs>
       </CardContent>
     </Card>
-  )
-}
+  );
+};
 
-export default ProteinComparison
+export default ProteinComparison;

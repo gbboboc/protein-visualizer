@@ -1,74 +1,74 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { db, executeQuery } from "@/lib/db"
-import { proteins } from "@/lib/schema"
-import { eq } from "drizzle-orm"
+import connectDB from "@/lib/mongodb"
+import Protein from "@/lib/models/Protein"
+import { convertDocToObj } from "@/lib/utils"
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
-  const id = Number.parseInt(params.id)
+  try {
+    await connectDB()
+    const protein = await Protein.findById(params.id)
+    
+    if (!protein) {
+      return NextResponse.json({ error: "Protein not found" }, { status: 404 })
+    }
 
-  const result = await executeQuery(async () => {
-    return await db.select().from(proteins).where(eq(proteins.id, id))
-  })
-
-  if (result.error) {
-    return NextResponse.json({ error: result.error }, { status: 500 })
+    return NextResponse.json(convertDocToObj(protein))
+  } catch (error) {
+    console.error("Error fetching protein:", error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to fetch protein" },
+      { status: 500 }
+    )
   }
-
-  if (!result.data || result.data.length === 0) {
-    return NextResponse.json({ error: "Protein not found" }, { status: 404 })
-  }
-
-  return NextResponse.json(result.data[0])
 }
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const id = Number.parseInt(params.id)
+    await connectDB()
     const body = await request.json()
     const { name, sequence, description, isPublic } = body
 
-    const result = await executeQuery(async () => {
-      return await db
-        .update(proteins)
-        .set({
-          name,
-          sequence,
-          description,
-          isPublic,
-          updatedAt: new Date(),
-        })
-        .where(eq(proteins.id, id))
-        .returning()
-    })
+    const protein = await Protein.findByIdAndUpdate(
+      params.id,
+      {
+        name,
+        sequence,
+        description,
+        isPublic,
+        updatedAt: new Date(),
+      },
+      { new: true }
+    )
 
-    if (result.error) {
-      return NextResponse.json({ error: result.error }, { status: 500 })
-    }
-
-    if (!result.data || result.data.length === 0) {
+    if (!protein) {
       return NextResponse.json({ error: "Protein not found" }, { status: 404 })
     }
 
-    return NextResponse.json(result.data[0])
+    return NextResponse.json(convertDocToObj(protein))
   } catch (error) {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
+    console.error("Error updating protein:", error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to update protein" },
+      { status: 500 }
+    )
   }
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
-  const id = Number.parseInt(params.id)
+  try {
+    await connectDB()
+    const protein = await Protein.findByIdAndDelete(params.id)
 
-  const result = await executeQuery(async () => {
-    return await db.delete(proteins).where(eq(proteins.id, id)).returning()
-  })
+    if (!protein) {
+      return NextResponse.json({ error: "Protein not found" }, { status: 404 })
+    }
 
-  if (result.error) {
-    return NextResponse.json({ error: result.error }, { status: 500 })
+    return NextResponse.json({ message: "Protein deleted successfully" })
+  } catch (error) {
+    console.error("Error deleting protein:", error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to delete protein" },
+      { status: 500 }
+    )
   }
-
-  if (!result.data || result.data.length === 0) {
-    return NextResponse.json({ error: "Protein not found" }, { status: 404 })
-  }
-
-  return NextResponse.json({ message: "Protein deleted successfully" })
 }

@@ -1,31 +1,32 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { db, executeQuery } from "@/lib/db"
-import { savedExports } from "@/lib/schema"
+import connectDB from "@/lib/mongodb"
+import Export from "@/lib/models/Export"
+import { convertDocToObj } from "@/lib/utils"
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams
-  const userId = searchParams.get("userId")
+  try {
+    await connectDB()
+    const searchParams = request.nextUrl.searchParams
+    const userId = searchParams.get("userId")
 
-  const result = await executeQuery(async () => {
-    if (userId) {
-      return await db
-        .select()
-        .from(savedExports)
-        .where(eq(savedExports.userId, Number.parseInt(userId)))
-    } else {
-      return await db.select().from(savedExports)
-    }
-  })
+    const query = userId ? { userId } : {}
+    const exports = await Export.find(query)
+      .populate('proteinId')
+      .sort({ createdAt: -1 })
 
-  if (result.error) {
-    return NextResponse.json({ error: result.error }, { status: 500 })
+    return NextResponse.json(convertDocToObj(exports))
+  } catch (error) {
+    console.error("Error fetching exports:", error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to fetch exports" },
+      { status: 500 }
+    )
   }
-
-  return NextResponse.json(result.data)
 }
 
 export async function POST(request: NextRequest) {
   try {
+    await connectDB()
     const body = await request.json()
     const { userId, proteinId, exportType, filePath } = body
 
@@ -33,24 +34,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    const result = await executeQuery(async () => {
-      return await db
-        .insert(savedExports)
-        .values({
-          userId,
-          proteinId,
-          exportType,
-          filePath,
-        })
-        .returning()
+    const exportDoc = new Export({
+      userId,
+      proteinId,
+      exportType,
+      filePath,
     })
 
-    if (result.error) {
-      return NextResponse.json({ error: result.error }, { status: 500 })
-    }
-
-    return NextResponse.json(result.data)
+    const savedExport = await exportDoc.save()
+    const populatedExport = await Export.findById(savedExport._id).populate('proteinId')
+    
+    return NextResponse.json(convertDocToObj(populatedExport))
   } catch (error) {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
+    console.error("Error saving export:", error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to save export" },
+      { status: 500 }
+    )
   }
 }
