@@ -602,9 +602,10 @@ const ProteinVisualizer = () => {
             </Tabs>
           </Card>
         </div>
-        
-        {/* Dialog Browse Saved Proteins */}
-        <Dialog>
+
+        <div className="grid grid-cols-2 gap-4">
+          {/* Dialog Browse Saved Proteins */}
+          <Dialog>
             <DialogTrigger asChild>
               <Button className="w-full">
                 <Database className="w-4 h-4 mr-2" /> Browse Saved Proteins
@@ -627,19 +628,30 @@ const ProteinVisualizer = () => {
                   <tbody>
                     {savedProteins.length > 0 ? (
                       savedProteins.map((protein, index) => (
-                        <tr key={index} className={index % 2 === 0 ? "bg-gray-50" : ""}>
+                        <tr
+                          key={index}
+                          className={index % 2 === 0 ? "bg-gray-50" : ""}
+                        >
                           <td className="border p-2">{protein.name}</td>
-                          <td className="border p-2 font-mono">{protein.sequence}</td>
-                          <td className="border p-2">{protein.sequence.length}</td>
+                          <td className="border p-2 font-mono">
+                            {protein.sequence}
+                          </td>
+                          <td className="border p-2">
+                            {protein.sequence.length}
+                          </td>
                           <td className="border p-2">
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => {
-                                  setSequence(protein.sequence)
-                                  setProteinName(protein.name || "Loaded Protein")
-                                  setDirections(protein.directions?.join("-") || "")
+                                  setSequence(protein.sequence);
+                                  setProteinName(
+                                    protein.name || "Loaded Protein"
+                                  );
+                                  setDirections(
+                                    protein.directions?.join("-") || ""
+                                  );
                                 }}
                               >
                                 Load
@@ -649,9 +661,10 @@ const ProteinVisualizer = () => {
                                 variant="outline"
                                 onClick={() => {
                                   setComparisonProteins((prev) => {
-                                    if (prev.some((p) => p.id === protein.id)) return prev
-                                    return [...prev, protein]
-                                  })
+                                    if (prev.some((p) => p.id === protein.id))
+                                      return prev;
+                                    return [...prev, protein];
+                                  });
                                 }}
                               >
                                 Compare
@@ -662,7 +675,10 @@ const ProteinVisualizer = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={4} className="border p-4 text-center text-gray-500">
+                        <td
+                          colSpan={4}
+                          className="border p-4 text-center text-gray-500"
+                        >
                           No saved proteins found
                         </td>
                       </tr>
@@ -672,6 +688,40 @@ const ProteinVisualizer = () => {
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* Actions Card */}
+          {proteinData && (
+            <Card className="p-4">
+              <h2 className="text-lg font-semibold text-primary mb-4">
+                Actions
+              </h2>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleSaveProtein}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-2" /> Save to Database
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleAddToComparison(proteinData)}
+                >
+                  <Share2 className="w-4 h-4 mr-2" /> Add to Comparison
+                </Button>
+              </div>
+            </Card>
+          )}
+        </div>
       </div>
     </div>
   );
