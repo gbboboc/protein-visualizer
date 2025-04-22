@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { BrowserAttributes } from "@/components/browser-attributes";
 import { Providers } from "@/components/providers";
+import { Header } from "@/components/ui/header";
 
 export const metadata: Metadata = {
   title: "HP Protein Visualizer",
@@ -22,7 +23,8 @@ export default function RootLayout({
       >
         <Providers>
           <BrowserAttributes />
-          {children}
+          <Header />
+          <main className="min-h-[calc(100vh-3.5rem)]">{children}</main>
         </Providers>
       </body>
     </html>

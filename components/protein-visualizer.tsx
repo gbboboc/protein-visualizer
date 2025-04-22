@@ -340,19 +340,6 @@ const ProteinVisualizer = () => {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="mx-auto max-w-[1800px] space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-primary">
-            HP Protein Visualizer
-          </h1>
-          <div className="flex gap-4">
-            <Button variant="outline" asChild>
-              <a href="/documentation">Documentation</a>
-            </Button>
-            <Button variant="outline" asChild>
-              <a href="/about">About</a>
-            </Button>
-          </div>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="p-6">
