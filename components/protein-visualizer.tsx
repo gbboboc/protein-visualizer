@@ -466,30 +466,38 @@ const ProteinVisualizer = () => {
 
               <TabsContent value="visualization" className="mt-4 h-[500px]">
                 {proteinData ? (
-                  <div className="w-full h-full bg-gray-50 rounded-lg">
-                    <Canvas
-                      camera={{ position: [5, 5, 10], fov: 50 }}
-                      style={{ width: "100%", height: "100%" }}
-                    >
-                      <PerspectiveCamera makeDefault position={[5, 5, 10]} />
-                      <OrbitControls
-                        enableDamping
-                        dampingFactor={0.1}
-                        minDistance={2}
-                        maxDistance={20}
-                      />
-                      <ambientLight intensity={0.8} />
-                      <directionalLight position={[10, 10, 10]} intensity={1} />
-                      <directionalLight
-                        position={[-10, -10, -10]}
-                        intensity={0.5}
-                      />
-                      <ProteinModel
-                        sequence={proteinData.sequence}
-                        directions={proteinData.directions}
-                        type={visualizationType}
-                      />
-                    </Canvas>
+                  <div className="space-y-4">
+                    <div className="w-full h-[400px] bg-gray-50 rounded-lg">
+                      <Canvas
+                        camera={{ position: [5, 5, 10], fov: 50 }}
+                        style={{ width: "100%", height: "100%" }}
+                      >
+                        <PerspectiveCamera makeDefault position={[5, 5, 10]} />
+                        <OrbitControls
+                          enableDamping
+                          dampingFactor={0.1}
+                          minDistance={2}
+                          maxDistance={20}
+                        />
+                        <ambientLight intensity={0.8} />
+                        <directionalLight
+                          position={[10, 10, 10]}
+                          intensity={1}
+                        />
+                        <directionalLight
+                          position={[-10, -10, -10]}
+                          intensity={0.5}
+                        />
+                        <ProteinModel
+                          sequence={proteinData.sequence}
+                          directions={proteinData.directions}
+                          type={visualizationType}
+                        />
+                      </Canvas>
+                    </div>
+                    <div className="mt-4">
+                      <ProteinAnalysis proteinData={proteinData} />
+                    </div>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -537,6 +545,7 @@ const ProteinVisualizer = () => {
           </Card>
         </div>
 
+        {/* Temporarily hidden saved proteins card
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-4">
             <Database className="w-5 h-5" />
@@ -604,6 +613,7 @@ const ProteinVisualizer = () => {
             </table>
           </div>
         </Card>
+        */}
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { BrowserAttributes } from "@/components/browser-attributes";
+import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
   title: "HP Protein Visualizer",
@@ -19,8 +20,10 @@ export default function RootLayout({
         className="min-h-screen bg-background antialiased"
         suppressHydrationWarning
       >
-        <BrowserAttributes />
-        {children}
+        <Providers>
+          <BrowserAttributes />
+          {children}
+        </Providers>
       </body>
     </html>
   );
