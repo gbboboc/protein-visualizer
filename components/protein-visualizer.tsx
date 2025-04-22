@@ -603,75 +603,93 @@ const ProteinVisualizer = () => {
           </Card>
         </div>
 
-        {/* Temporarily hidden saved proteins card
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Database className="w-5 h-5" />
-            <h2 className="text-xl font-semibold">Browse Saved Proteins</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="border p-2 text-left">Name</th>
-                  <th className="border p-2 text-left">Sequence</th>
-                  <th className="border p-2 text-left">Length</th>
-                  <th className="border p-2 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {savedProteins.length > 0 ? (
-                  savedProteins.map((protein, index) => (
-                    <tr
-                      key={index}
-                      className={index % 2 === 0 ? "bg-gray-50" : ""}
-                    >
-                      <td className="border p-2">{protein.name}</td>
-                      <td className="border p-2 font-mono">
-                        {protein.sequence}
-                      </td>
-                      <td className="border p-2">{protein.sequence.length}</td>
-                      <td className="border p-2">
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setProteinName(protein.name || "");
-                              setSequence(protein.sequence);
-                              setDirections(
-                                protein.directions?.join("-") || ""
-                              );
-                            }}
-                          >
-                            Load
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleAddToComparison(protein)}
-                          >
-                            Compare
-                          </Button>
-                        </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button
+              variant="default"
+              className="w-full flex items-center justify-center gap-2 bg-black hover:bg-black/90 text-white rounded-lg py-3"
+            >
+              <Database className="w-5 h-5" />
+              Browse Saved Proteins
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Browse Saved Proteins</DialogTitle>
+            </DialogHeader>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="border p-2 text-left">Name</th>
+                    <th className="border p-2 text-left">Sequence</th>
+                    <th className="border p-2 text-left">Length</th>
+                    <th className="border p-2 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {savedProteins.length > 0 ? (
+                    savedProteins.map((protein, index) => (
+                      <tr
+                        key={index}
+                        className={index % 2 === 0 ? "bg-gray-50" : ""}
+                      >
+                        <td className="border p-2">{protein.name}</td>
+                        <td className="border p-2 font-mono">
+                          {protein.sequence}
+                        </td>
+                        <td className="border p-2">
+                          {protein.sequence.length}
+                        </td>
+                        <td className="border p-2">
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSequence(protein.sequence);
+                                setProteinName(
+                                  protein.name || "Loaded Protein"
+                                );
+                                setDirections(
+                                  protein.directions?.join("-") || ""
+                                );
+                              }}
+                            >
+                              Load
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setComparisonProteins((prev) => {
+                                  if (prev.some((p) => p.id === protein.id))
+                                    return prev;
+                                  return [...prev, protein];
+                                });
+                              }}
+                            >
+                              Compare
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="border p-4 text-center text-muted-foreground"
+                      >
+                        No saved proteins yet
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="border p-4 text-center text-muted-foreground"
-                    >
-                      No saved proteins yet
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-        */}
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
