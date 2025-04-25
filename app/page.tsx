@@ -1,5 +1,5 @@
-import ProteinVisualizer from "@/components/protein-visualizer"
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return <ProteinVisualizer />
+  redirect("/dashboard");
 }

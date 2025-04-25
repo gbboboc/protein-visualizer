@@ -6,7 +6,7 @@ interface IProtein extends Document {
   sequence: string
   description: string
   isPublic: boolean
-  directions?: string
+  directions: string[]
   createdAt: Date
   updatedAt: Date
 }
@@ -34,15 +34,20 @@ const proteinSchema = new mongoose.Schema({
     default: false,
   },
   directions: {
-    type: String,
-    required: true,
+    type: [String],
+    default: [],
+    required: false,
   },
 }, {
   timestamps: true, // This will automatically manage createdAt and updatedAt
   versionKey: false // This will remove the __v field
 })
 
-// Only create the model if it doesn't exist
-const Protein = mongoose.models.Protein || mongoose.model<IProtein>('Protein', proteinSchema)
+// Drop the existing model if it exists to ensure schema changes take effect
+if (mongoose.models.Protein) {
+  delete mongoose.models.Protein
+}
+
+const Protein = mongoose.model<IProtein>('Protein', proteinSchema)
 
 export default Protein 

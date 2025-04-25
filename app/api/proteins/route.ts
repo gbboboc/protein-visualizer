@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import connectDB from "@/lib/mongodb"
 import Protein from "@/lib/models/Protein"
 import { convertDocToObj } from "@/lib/utils"
+import mongoose from "mongoose"
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     let query = {}
     if (userId) {
-      query = { userId }
+      query = { userId: new mongoose.Types.ObjectId(userId) }
     } else if (isPublic) {
       query = { isPublic: true }
     }
@@ -32,18 +33,22 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB()
     const body = await request.json()
-    const { userId, name, sequence, description, isPublic } = body
+    const { userId, name, sequence, description, isPublic, directions } = body
 
     if (!userId || !name || !sequence) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
+    // Ensure directions is an array
+    const directionsArray = Array.isArray(directions) ? directions : []
+
     const protein = new Protein({
-      userId,
+      userId: new mongoose.Types.ObjectId(userId),
       name,
       sequence,
-      description,
+      description: description || '',
       isPublic: isPublic || false,
+      directions: directionsArray,
     })
 
     const savedProtein = await protein.save()
