@@ -69,7 +69,8 @@ export type ProteinSequence = {
 const ProteinVisualizer = () => {
   const [sequence, setSequence] = useState<string>("");
   const [directions, setDirections] = useState<string>("");
-  const [proteinName, setProteinName] = useState<string>("My Protein");
+  const [proteinName, setProteinName] = useState<string>("");
+  const [proteinNameError, setProteinNameError] = useState<string>("");
   const [proteinData, setProteinData] = useState<ProteinSequence | null>(null);
   const [visualizationType, setVisualizationType] =
     useState<VisualizationType>("3d");
@@ -152,7 +153,8 @@ const ProteinVisualizer = () => {
   const handleReset = () => {
     setSequence("");
     setDirections("");
-    setProteinName("My Protein");
+    setProteinName("");
+    setProteinNameError("");
     setProteinData(null);
     setError(null);
   };
@@ -178,6 +180,12 @@ const ProteinVisualizer = () => {
 
     if (!proteinData) return;
 
+    if (!proteinName.trim()) {
+      setProteinNameError("Please provide a name for the protein");
+      return;
+    }
+
+    setProteinNameError("");
     setLoading(true);
     try {
       const response = await fetch("/api/proteins", {
@@ -446,9 +454,16 @@ const ProteinVisualizer = () => {
                   <Input
                     id="proteinName"
                     value={proteinName}
-                    onChange={(e) => setProteinName(e.target.value)}
-                    placeholder="My Protein"
+                    onChange={(e) => {
+                      setProteinName(e.target.value);
+                      setProteinNameError("");
+                    }}
+                    placeholder="Enter protein name"
+                    className={proteinNameError ? "border-red-500" : ""}
                   />
+                  {proteinNameError && (
+                    <p className="text-sm text-red-500 mt-1">{proteinNameError}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -679,7 +694,24 @@ const ProteinVisualizer = () => {
                 value="export"
                 className="mt-4 h-[500px] overflow-y-auto"
               >
-                <ExportOptions onExport={handleSaveExport} />
+                {proteinData ? (
+                  <ExportOptions
+                    sequence={proteinData.sequence}
+                    directions={proteinData.directions}
+                    proteinName={proteinData.name}
+                    onExport={handleSaveExport}
+                  />
+                ) : (
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex flex-col items-center justify-center space-y-4 py-8">
+                        <p className="text-gray-600 text-center">
+                          Please provide a protein sequence to export.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
             </Tabs>
           </Card>

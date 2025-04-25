@@ -102,6 +102,31 @@ const ProteinComparison: React.FC<ProteinComparisonProps> = ({
     }
   };
 
+  const handleExport = () => {
+    const exportData = {
+      name: comparisonName || "Protein Comparison",
+      proteins: proteins.map((protein) => ({
+        name: protein.name,
+        sequence: protein.sequence,
+        directions: protein.directions,
+      })),
+      similarityMatrix,
+      createdAt: new Date().toISOString(),
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${comparisonName || "protein_comparison"}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -168,7 +193,7 @@ const ProteinComparison: React.FC<ProteinComparisonProps> = ({
                   onChange={(e) => setComparisonName(e.target.value)}
                 />
               </div>
-              <Button size="sm" variant="outline">
+              <Button size="sm" variant="outline" onClick={handleExport}>
                 <Download className="w-4 h-4 mr-1" /> Export Comparison
               </Button>
             </div>

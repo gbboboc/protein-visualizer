@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Copy, Share } from "lucide-react";
+import { Download, Copy, Share, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Position {
@@ -38,10 +38,23 @@ const ExportOptions: React.FC<ExportOptionsProps> = ({
   onSaveExport,
   onExport,
 }) => {
+  if (!sequence) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-center text-gray-500">
+            No protein sequence available
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const [exportType, setExportType] = useState<string>("pdb");
   const [fileName, setFileName] = useState<string>(
     `${proteinName.toLowerCase().replace(/\s+/g, "_")}`
   );
+  const [isLinkCopied, setIsLinkCopied] = useState(false);
   const { toast } = useToast();
 
   // Generate PDB format
@@ -268,17 +281,26 @@ const ExportOptions: React.FC<ExportOptionsProps> = ({
 
   // Handle share link
   const handleShareLink = () => {
+    if (!sequence) return;
+
     // Create a shareable link with the sequence and directions as query parameters
     const url = new URL(window.location.href);
     url.searchParams.set("sequence", sequence);
-    if (directions) {
+    if (directions && directions.length > 0) {
       url.searchParams.set("directions", directions.join("-"));
+    }
+    if (proteinName) {
+      url.searchParams.set("name", proteinName);
     }
 
     navigator.clipboard.writeText(url.toString());
+    setIsLinkCopied(true);
+    setTimeout(() => setIsLinkCopied(false), 2000);
+
     toast({
-      title: "Link Copied",
-      description: "Shareable link has been copied to clipboard.",
+      title: "Link Copied!",
+      description:
+        "The shareable link has been copied to your clipboard. You can now paste it anywhere.",
     });
   };
 
@@ -326,15 +348,29 @@ const ExportOptions: React.FC<ExportOptionsProps> = ({
             </Button>
           </TabsContent>
 
-          <TabsContent value="share">
+          <TabsContent value="share" className="space-y-4">
             <div className="space-y-4">
               <p className="text-sm text-gray-500">
                 Generate a shareable link that contains the protein sequence and
-                folding directions.
+                folding directions. Anyone with this link can view and load your
+                protein.
               </p>
 
-              <Button onClick={handleShareLink} className="w-full">
-                <Share className="w-4 h-4 mr-2" /> Generate Shareable Link
+              <Button
+                onClick={handleShareLink}
+                className="w-full"
+                disabled={!sequence}
+                variant={isLinkCopied ? "default" : "outline"}
+              >
+                {isLinkCopied ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" /> Link Copied!
+                  </>
+                ) : (
+                  <>
+                    <Share className="w-4 h-4 mr-2" /> Generate Shareable Link
+                  </>
+                )}
               </Button>
             </div>
           </TabsContent>
