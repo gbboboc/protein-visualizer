@@ -15,8 +15,8 @@ const comparisonSchema = new mongoose.Schema({
     default: '',
   },
   proteins: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Protein',
+    type: String, // Store protein IDs as strings
+    required: true,
   }],
 }, {
   timestamps: true,

@@ -167,13 +167,6 @@ const ProteinComparison: React.FC<ProteinComparisonProps> = ({
                   value={comparisonName}
                   onChange={(e) => setComparisonName(e.target.value)}
                 />
-                <Button
-                  size="sm"
-                  onClick={handleSaveComparison}
-                  disabled={!comparisonName}
-                >
-                  <Save className="w-4 h-4 mr-1" /> Save Comparison
-                </Button>
               </div>
               <Button size="sm" variant="outline">
                 <Download className="w-4 h-4 mr-1" /> Export Comparison

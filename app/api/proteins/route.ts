@@ -10,7 +10,18 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const userId = searchParams.get("userId")
     const isPublic = searchParams.get("isPublic") === "true"
+    const id = searchParams.get("id")
 
+    // If an ID is provided, fetch a single protein
+    if (id) {
+      const protein = await Protein.findById(id)
+      if (!protein) {
+        return NextResponse.json({ error: "Protein not found" }, { status: 404 })
+      }
+      return NextResponse.json(convertDocToObj(protein))
+    }
+
+    // Otherwise, fetch all proteins based on filters
     let query = {}
     if (userId) {
       query = { userId: new mongoose.Types.ObjectId(userId) }

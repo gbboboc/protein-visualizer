@@ -42,6 +42,7 @@ import ProteinComparison from "@/components/protein-comparison";
 import EnergyMinimization from "@/components/energy-minimization";
 import ExportOptions from "@/components/export-options";
 import { getPublicProteins, saveProtein } from "@/app/actions";
+import { SavedContentDialog } from "./saved-content-dialog";
 
 export type Direction = "left" | "right" | "up" | "down";
 
@@ -54,9 +55,15 @@ export type VisualizationType =
 
 export type ProteinSequence = {
   id?: number;
+  _id?: string | unknown;
   name?: string;
   sequence: string;
   directions?: Direction[];
+  userId?: string | unknown;
+  description?: string;
+  isPublic?: boolean | string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 };
 
 const ProteinVisualizer = () => {
@@ -69,23 +76,27 @@ const ProteinVisualizer = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [savedProteins, setSavedProteins] = useState<ProteinSequence[]>([]);
-  const [isCanvasFullscreen, setIsCanvasFullscreen] = useState(false);
+  const [savedComparisons, setSavedComparisons] = useState<any[]>([]);
   const [comparisonProteins, setComparisonProteins] = useState<
     ProteinSequence[]
   >([]);
+  const [isCanvasFullscreen, setIsCanvasFullscreen] = useState(false);
   const { toast } = useToast();
   const { data: session } = useSession();
+  const [comparisonSaved, setComparisonSaved] = useState(false);
 
-  // Load saved proteins from database on initial render
+  // Load saved proteins and comparisons from database on initial render
   useEffect(() => {
-    const fetchSavedProteins = async () => {
+    const fetchSavedContent = async () => {
       try {
-        const { data, error } = await getPublicProteins();
-        if (error) {
-          throw new Error(error);
+        // Fetch proteins
+        const { data: proteinsData, error: proteinsError } =
+          await getPublicProteins();
+        if (proteinsError) {
+          throw new Error(proteinsError);
         }
-        if (data) {
-          const convertedData = data.map((protein) => ({
+        if (proteinsData) {
+          const convertedData = proteinsData.map((protein) => ({
             ...protein,
             directions: protein.directions
               ? (protein.directions.split("-") as Direction[])
@@ -93,64 +104,49 @@ const ProteinVisualizer = () => {
           }));
           setSavedProteins(convertedData);
         }
+
+        // Fetch comparisons
+        if (session?.user?.id) {
+          const response = await fetch(
+            `/api/comparisons?userId=${session.user.id}`
+          );
+          if (!response.ok) throw new Error("Failed to fetch comparisons");
+          const comparisonsData = await response.json();
+          setSavedComparisons(comparisonsData);
+        }
       } catch (error) {
-        console.error("Error fetching saved proteins:", error);
+        console.error("Error fetching saved content:", error);
         toast({
           title: "Error",
-          description: "Failed to fetch saved proteins.",
+          description: "Failed to fetch saved content.",
           variant: "destructive",
         });
       }
     };
 
-    fetchSavedProteins();
-  }, [toast]);
+    fetchSavedContent();
+  }, [toast, session?.user?.id]);
 
   const handleVisualize = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Visualizing protein with sequence:", sequence);
 
-    // Validate sequence (should only contain H and P)
-    if (!/^[HP]+$/i.test(sequence)) {
-      setError(
-        "Sequence must only contain H (hydrophobic) and P (polar) residues"
-      );
+    if (!sequence) {
+      setError("Please enter a protein sequence");
       return;
     }
 
-    // Parse directions if provided
-    let parsedDirections: Direction[] | undefined = undefined;
-
-    if (directions.trim()) {
-      try {
-        parsedDirections = directions.split("-").map((dir) => {
-          const d = dir.trim().toLowerCase();
-          if (!["left", "right", "up", "down"].includes(d)) {
-            throw new Error(`Invalid direction: ${dir}`);
-          }
-          return d as Direction;
-        });
-
-        // Check if directions count is correct (should be sequence length - 1)
-        if (parsedDirections.length !== sequence.length - 1) {
-          setError(
-            `Expected ${sequence.length - 1} directions, but got ${
-              parsedDirections.length
-            }`
-          );
-          return;
-        }
-      } catch (err) {
-        setError((err as Error).message);
-        return;
-      }
-    }
-
-    setError(null);
-    setProteinData({
+    const newProteinData: ProteinSequence = {
+      sequence,
+      directions: directions
+        ? (directions.split("-") as Direction[])
+        : undefined,
       name: proteinName,
-      sequence: sequence.toUpperCase(),
-      directions: parsedDirections,
-    });
+    };
+
+    console.log("Created new protein data:", newProteinData);
+    setProteinData(newProteinData);
+    setError(null);
   };
 
   const handleReset = () => {
@@ -221,18 +217,36 @@ const ProteinVisualizer = () => {
   };
 
   const handleAddToComparison = (protein: ProteinSequence) => {
-    if (!protein) return;
+    console.log("Adding protein to comparison:", protein);
+    if (!protein) {
+      console.log("No protein provided");
+      return;
+    }
+
+    // Ensure directions is an array
+    const proteinWithDirections = {
+      ...protein,
+      directions: Array.isArray(protein.directions) ? protein.directions : [],
+    };
 
     // Check if protein is already in comparison
     const exists = comparisonProteins.some(
       (p) => p.sequence === protein.sequence
     );
 
+    console.log("Protein exists in comparison:", exists);
+    console.log("Current comparison proteins:", comparisonProteins);
+
     if (!exists) {
-      setComparisonProteins((prev) => [...prev, protein]);
+      setComparisonProteins((prev) => {
+        console.log("Adding protein to comparison list");
+        return [...prev, proteinWithDirections];
+      });
       toast({
         title: "Added to Comparison",
-        description: `${protein.name} has been added to the comparison list.`,
+        description: `${
+          protein.name || "Protein"
+        } has been added to the comparison list.`,
       });
     } else {
       toast({
@@ -296,7 +310,11 @@ const ProteinVisualizer = () => {
   };
 
   const handleSaveComparison = async () => {
+    console.log("handleSaveComparison called");
+    console.log("Current comparison proteins:", comparisonProteins);
+
     if (!session?.user?.id) {
+      console.log("No user session found");
       toast({
         title: "Authentication required",
         description: "Please sign in to save comparisons",
@@ -305,36 +323,114 @@ const ProteinVisualizer = () => {
       return;
     }
 
-    if (comparisonProteins.length < 2) return;
+    if (comparisonProteins.length < 2) {
+      console.log(
+        "Not enough proteins for comparison:",
+        comparisonProteins.length
+      );
+      toast({
+        title: "Error",
+        description: "You need at least 2 proteins to create a comparison",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
+      console.log("Attempting to save comparison...");
+
+      // First, ensure all proteins are saved to the database
+      const savedProteins = await Promise.all(
+        comparisonProteins.map(async (protein) => {
+          if (!protein._id && !protein.id) {
+            // Save the protein if it doesn't have an ID
+            const response = await fetch("/api/proteins", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                name: protein.name || "Unnamed Protein",
+                sequence: protein.sequence,
+                directions: protein.directions,
+                isPublic: true,
+                userId: session.user.id,
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error("Failed to save protein");
+            }
+
+            const savedProtein = await response.json();
+            return savedProtein;
+          }
+          return protein;
+        })
+      );
+
+      // Extract protein IDs from saved proteins
+      const proteinIds = savedProteins.map((p) => {
+        const id = p._id || p.id;
+        if (!id) {
+          throw new Error("Protein missing ID after saving");
+        }
+        return id;
+      });
+
+      console.log("Saving comparison with protein IDs:", proteinIds);
+
       const response = await fetch("/api/comparisons", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          proteins: comparisonProteins,
+          name: `Comparison of ${comparisonProteins.length} proteins`,
+          description: `Comparison created on ${new Date().toLocaleDateString()}`,
+          proteinIds: proteinIds,
           userId: session.user.id,
         }),
       });
 
-      if (response.ok) {
-        toast({
-          title: "Comparison Saved",
-          description: `${proteinName} has been saved to the database.`,
-        });
-      } else {
+      console.log("Save comparison response:", response);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Failed to save comparison:", errorData);
         throw new Error("Failed to save comparison");
       }
+
+      const data = await response.json();
+      console.log("Comparison saved successfully:", data);
+
+      toast({
+        title: "Comparison Saved",
+        description: "Your comparison has been saved successfully.",
+      });
+      setComparisonProteins([]);
+      setComparisonSaved((prev) => !prev); // Toggle to trigger refresh
     } catch (error) {
       console.error("Error saving comparison:", error);
       toast({
         title: "Error",
-        description: "Failed to save comparison to database.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to save comparison to database.",
         variant: "destructive",
       });
     }
+  };
+
+  const handleLoadProtein = (protein: ProteinSequence) => {
+    setSequence(protein.sequence);
+    setProteinName(protein.name || "Loaded Protein");
+    setDirections(protein.directions?.join("-") || "");
+  };
+
+  const handleLoadComparison = (proteins: ProteinSequence[]) => {
+    setComparisonProteins(proteins);
   };
 
   return (
@@ -590,90 +686,12 @@ const ProteinVisualizer = () => {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          {/* Dialog Browse Saved Proteins */}
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="w-full">
-                <Database className="w-4 h-4 mr-2" /> Browse Saved Proteins
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl">
-              <DialogHeader>
-                <DialogTitle>Saved Proteins</DialogTitle>
-              </DialogHeader>
-              <div className="max-h-[60vh] overflow-y-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr>
-                      <th className="border p-2 text-left">Name</th>
-                      <th className="border p-2 text-left">Sequence</th>
-                      <th className="border p-2 text-left">Length</th>
-                      <th className="border p-2 text-left">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {savedProteins.length > 0 ? (
-                      savedProteins.map((protein, index) => (
-                        <tr
-                          key={index}
-                          className={index % 2 === 0 ? "bg-gray-50" : ""}
-                        >
-                          <td className="border p-2">{protein.name}</td>
-                          <td className="border p-2 font-mono">
-                            {protein.sequence}
-                          </td>
-                          <td className="border p-2">
-                            {protein.sequence.length}
-                          </td>
-                          <td className="border p-2">
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setSequence(protein.sequence);
-                                  setProteinName(
-                                    protein.name || "Loaded Protein"
-                                  );
-                                  setDirections(
-                                    protein.directions?.join("-") || ""
-                                  );
-                                }}
-                              >
-                                Load
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setComparisonProteins((prev) => {
-                                    if (prev.some((p) => p.id === protein.id))
-                                      return prev;
-                                    return [...prev, protein];
-                                  });
-                                }}
-                              >
-                                Compare
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan={4}
-                          className="border p-4 text-center text-gray-500"
-                        >
-                          No saved proteins found
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <SavedContentDialog
+            onLoadProtein={handleLoadProtein}
+            onAddToComparison={handleAddToComparison}
+            onLoadComparison={handleLoadComparison}
+            onComparisonSaved={() => setComparisonSaved((prev) => !prev)}
+          />
 
           {/* Actions Card */}
           {proteinData && (
@@ -700,10 +718,23 @@ const ProteinVisualizer = () => {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => handleAddToComparison(proteinData)}
+                  onClick={() => {
+                    console.log("Add to Comparison button clicked");
+                    console.log("Current proteinData:", proteinData);
+                    handleAddToComparison(proteinData);
+                  }}
                 >
                   <Share2 className="w-4 h-4 mr-2" /> Add to Comparison
                 </Button>
+                {comparisonProteins.length > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={handleSaveComparison}
+                    className="col-span-2"
+                  >
+                    <Save className="w-4 h-4 mr-2" /> Save Comparison
+                  </Button>
+                )}
               </div>
             </Card>
           )}

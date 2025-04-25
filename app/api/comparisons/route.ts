@@ -7,14 +7,19 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB()
     const searchParams = request.nextUrl.searchParams
-    const userId = searchParams.get("userId")
+    const userId = searchParams.get('userId')
 
-    const query = userId ? { userId } : {}
-    const comparisons = await Comparison.find(query)
-      .populate('proteins')
-      .sort({ createdAt: -1 })
+    if (!userId) {
+      return NextResponse.json({ error: "User ID is required" }, { status: 400 })
+    }
 
-    return NextResponse.json(convertDocToObj(comparisons))
+    const comparisons = await Comparison.find({ userId })
+    const formattedComparisons = comparisons.map(comparison => ({
+      ...convertDocToObj(comparison),
+      proteins: comparison.proteins // proteins is already an array of IDs
+    }))
+
+    return NextResponse.json(formattedComparisons)
   } catch (error) {
     console.error("Error fetching comparisons:", error)
     return NextResponse.json(
@@ -38,13 +43,15 @@ export async function POST(request: NextRequest) {
       userId,
       name,
       description,
-      proteins: proteinIds,
+      proteins: proteinIds, // Store protein IDs directly
     })
 
     const savedComparison = await comparison.save()
-    const populatedComparison = await Comparison.findById(savedComparison._id).populate('proteins')
     
-    return NextResponse.json(convertDocToObj(populatedComparison))
+    return NextResponse.json({
+      ...convertDocToObj(savedComparison),
+      proteins: proteinIds
+    })
   } catch (error) {
     console.error("Error saving comparison:", error)
     return NextResponse.json(
