@@ -462,7 +462,9 @@ const ProteinVisualizer = () => {
                     className={proteinNameError ? "border-red-500" : ""}
                   />
                   {proteinNameError && (
-                    <p className="text-sm text-red-500 mt-1">{proteinNameError}</p>
+                    <p className="text-sm text-red-500 mt-1">
+                      {proteinNameError}
+                    </p>
                   )}
                 </div>
 
