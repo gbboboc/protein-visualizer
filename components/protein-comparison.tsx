@@ -226,8 +226,7 @@ const ProteinComparison: React.FC<ProteinComparisonProps> = ({
                         </div>
                         <Progress
                           value={stats.hydrophobicPercentage}
-                          className="h-2 bg-gray-200"
-                          indicatorClassName="bg-red-500"
+                          className="h-2 bg-gray-200 [&>div]:bg-red-500"
                         />
                       </div>
                       <div>
@@ -242,8 +241,7 @@ const ProteinComparison: React.FC<ProteinComparisonProps> = ({
                         </div>
                         <Progress
                           value={stats.polarPercentage}
-                          className="h-2 bg-gray-200"
-                          indicatorClassName="bg-blue-500"
+                          className="h-2 bg-gray-200 [&>div]:bg-blue-500"
                         />
                       </div>
                     </div>
