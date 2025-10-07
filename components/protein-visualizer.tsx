@@ -43,8 +43,8 @@ import EnergyMinimization from "@/components/energy-minimization";
 import ExportOptions from "@/components/export-options";
 import { getPublicProteins, saveProtein } from "@/app/actions";
 import { SavedContentDialog } from "./saved-content-dialog";
-
-export type Direction = "left" | "right" | "up" | "down";
+import { Direction } from "@/lib/types";
+import { parseDirections, directionsToString } from "@/lib/utils";
 
 export type VisualizationType =
   | "3d"
@@ -69,6 +69,7 @@ export type ProteinSequence = {
 const ProteinVisualizer = () => {
   const [sequence, setSequence] = useState<string>("");
   const [directions, setDirections] = useState<string>("");
+  const [directionsError, setDirectionsError] = useState<string>("");
   const [proteinName, setProteinName] = useState<string>("");
   const [proteinNameError, setProteinNameError] = useState<string>("");
   const [proteinData, setProteinData] = useState<ProteinSequence | null>(null);
@@ -100,7 +101,7 @@ const ProteinVisualizer = () => {
           const convertedData = proteinsData.map((protein) => ({
             ...protein,
             directions: protein.directions
-              ? (protein.directions.split("-") as Direction[])
+              ? parseDirections(protein.directions)
               : undefined,
           }));
           setSavedProteins(convertedData);
@@ -137,11 +138,20 @@ const ProteinVisualizer = () => {
       return;
     }
 
+    // Validate directions if provided
+    if (directions) {
+      const parsedDirections = parseDirections(directions);
+      if (parsedDirections.length === 0) {
+        setError(
+          "Invalid direction format. Please use only letters R (Right), U (Up), D (Down), L (Left). Example: RUDL or R U D L"
+        );
+        return;
+      }
+    }
+
     const newProteinData: ProteinSequence = {
       sequence,
-      directions: directions
-        ? (directions.split("-") as Direction[])
-        : undefined,
+      directions: directions ? parseDirections(directions) : undefined,
       name: proteinName,
     };
 
@@ -150,9 +160,28 @@ const ProteinVisualizer = () => {
     setError(null);
   };
 
+  const handleDirectionsChange = (value: string) => {
+    setDirections(value);
+
+    // Clear error if input is empty
+    if (!value.trim()) {
+      setDirectionsError("");
+      return;
+    }
+
+    // Validate directions in real-time
+    const parsedDirections = parseDirections(value);
+    if (parsedDirections.length === 0) {
+      setDirectionsError("Invalid format. Use only letters R, U, D, L");
+    } else {
+      setDirectionsError("");
+    }
+  };
+
   const handleReset = () => {
     setSequence("");
     setDirections("");
+    setDirectionsError("");
     setProteinName("");
     setProteinNameError("");
     setProteinData(null);
@@ -269,12 +298,14 @@ const ProteinVisualizer = () => {
     optimizedDirections: string[],
     energy: number
   ) => {
-    setDirections(optimizedDirections.join("-"));
+    // Use optimized directions directly (assuming they're already in letter format)
+    const letterDirections = optimizedDirections as Direction[];
+    setDirections(directionsToString(letterDirections));
     setProteinData((prev) => {
       if (!prev) return null;
       return {
         ...prev,
-        directions: optimizedDirections as Direction[],
+        directions: letterDirections,
       };
     });
 
@@ -434,7 +465,10 @@ const ProteinVisualizer = () => {
   const handleLoadProtein = (protein: ProteinSequence) => {
     setSequence(protein.sequence);
     setProteinName(protein.name || "Loaded Protein");
-    setDirections(protein.directions?.join("-") || "");
+    setDirections(
+      protein.directions ? directionsToString(protein.directions) : ""
+    );
+    setDirectionsError(""); // Clear any directions error when loading
   };
 
   const handleLoadComparison = (proteins: ProteinSequence[]) => {
@@ -497,13 +531,17 @@ const ProteinVisualizer = () => {
                   <Input
                     id="directions"
                     value={directions}
-                    onChange={(e) => setDirections(e.target.value)}
-                    placeholder="e.g., left-right-up-down"
+                    onChange={(e) => handleDirectionsChange(e.target.value)}
+                    placeholder="e.g., RUDL or R U D L"
+                    className={directionsError ? "border-red-500" : ""}
                   />
-                  <p className="text-sm text-muted-foreground">
-                    Separate directions with hyphens. Leave empty for automatic
-                    folding.
-                  </p>
+                  {directionsError ? (
+                    <p className="text-sm text-red-500">{directionsError}</p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Use letters R (Right), U (Up), D (Down), L (Left).
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

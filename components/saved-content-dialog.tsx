@@ -14,7 +14,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Database } from "lucide-react";
 import { getPublicProteins } from "@/app/actions";
-import type { ProteinSequence, Direction } from "./protein-visualizer";
+import type { ProteinSequence } from "./protein-visualizer";
+import { Direction } from "@/lib/types";
+import { parseDirections } from "@/lib/utils";
 
 interface SavedContentDialogProps {
   onLoadProtein: (protein: ProteinSequence) => void;
@@ -49,7 +51,7 @@ export function SavedContentDialog({
           proteinsData.map((protein) => ({
             ...protein,
             directions: protein.directions
-              ? (protein.directions.split("-") as Direction[])
+              ? parseDirections(protein.directions)
               : undefined,
           }))
         );
@@ -153,7 +155,7 @@ export function SavedContentDialog({
               directions: data.directions
                 ? Array.isArray(data.directions)
                   ? data.directions
-                  : data.directions.split("-")
+                  : parseDirections(data.directions)
                 : undefined,
             };
           } catch (error) {

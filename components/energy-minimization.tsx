@@ -27,6 +27,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { Direction } from "@/lib/types";
+import { directionToPosition } from "@/lib/utils";
 
 interface Position {
   x: number;
@@ -65,7 +67,7 @@ const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
     if (!initialDirections || initialDirections.length === 0) {
       const defaultDirections = Array(sequence.length - 1)
         .fill("")
-        .map((_, i) => (i % 2 === 0 ? "right" : i % 4 === 1 ? "up" : "down"));
+        .map((_, i) => (i % 2 === 0 ? "R" : i % 4 === 1 ? "U" : "D"));
       setDirections(defaultDirections);
     }
   }, [sequence, initialDirections]);
@@ -85,24 +87,15 @@ const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
       const prevPos = positions[i - 1];
       const direction = dirs[i - 1];
 
-      let newPos: Position;
+      // Use direction directly (expecting letter format only)
+      const dir = direction as Direction;
 
-      switch (direction) {
-        case "left":
-          newPos = { x: prevPos.x - 1, y: prevPos.y, z: prevPos.z };
-          break;
-        case "right":
-          newPos = { x: prevPos.x + 1, y: prevPos.y, z: prevPos.z };
-          break;
-        case "up":
-          newPos = { x: prevPos.x, y: prevPos.y + 1, z: prevPos.z };
-          break;
-        case "down":
-          newPos = { x: prevPos.x, y: prevPos.y - 1, z: prevPos.z };
-          break;
-        default:
-          newPos = { x: prevPos.x + 1, y: prevPos.y, z: prevPos.z };
-      }
+      const positionChange = directionToPosition(dir);
+      const newPos: Position = {
+        x: prevPos.x + positionChange.x,
+        y: prevPos.y + positionChange.y,
+        z: prevPos.z + positionChange.z,
+      };
 
       // Check for self-intersection (invalid configuration)
       const posKey = `${newPos.x},${newPos.y},${newPos.z}`;
@@ -155,7 +148,7 @@ const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
       // Make a random move
       const newDirections = [...currentDirections];
       const randomIndex = Math.floor(Math.random() * newDirections.length);
-      const possibleDirections = ["left", "right", "up", "down"];
+      const possibleDirections = ["L", "R", "U", "D"];
       newDirections[randomIndex] =
         possibleDirections[
           Math.floor(Math.random() * possibleDirections.length)
@@ -232,7 +225,7 @@ const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
       // Make a random move
       const newDirections = [...currentDirections];
       const randomIndex = Math.floor(Math.random() * newDirections.length);
-      const possibleDirections = ["left", "right", "up", "down"];
+      const possibleDirections = ["L", "R", "U", "D"];
       newDirections[randomIndex] =
         possibleDirections[
           Math.floor(Math.random() * possibleDirections.length)

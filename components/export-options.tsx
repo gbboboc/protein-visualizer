@@ -16,6 +16,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, Copy, Share, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Direction } from "@/lib/types";
+import { directionToPosition } from "@/lib/utils";
 
 interface Position {
   x: number;
@@ -73,26 +75,17 @@ const ExportOptions: React.FC<ExportOptionsProps> = ({
     if (directions && directions.length === sequence.length - 1) {
       for (let i = 1; i < sequence.length; i++) {
         const prevPos = positions[i - 1];
-        const direction = directions[i - 1];
+        const directionStr = directions[i - 1];
 
-        let newPos: Position;
+        // Use direction directly (expecting letter format only)
+        const direction = directionStr as Direction;
 
-        switch (direction) {
-          case "left":
-            newPos = { x: prevPos.x - 1, y: prevPos.y, z: prevPos.z };
-            break;
-          case "right":
-            newPos = { x: prevPos.x + 1, y: prevPos.y, z: prevPos.z };
-            break;
-          case "up":
-            newPos = { x: prevPos.x, y: prevPos.y + 1, z: prevPos.z };
-            break;
-          case "down":
-            newPos = { x: prevPos.x, y: prevPos.y - 1, z: prevPos.z };
-            break;
-          default:
-            newPos = { x: prevPos.x + 1, y: prevPos.y, z: prevPos.z };
-        }
+        const positionChange = directionToPosition(direction);
+        const newPos: Position = {
+          x: prevPos.x + positionChange.x,
+          y: prevPos.y + positionChange.y,
+          z: prevPos.z + positionChange.z,
+        };
 
         positions.push(newPos);
       }
@@ -140,26 +133,17 @@ const ExportOptions: React.FC<ExportOptionsProps> = ({
     if (directions && directions.length === sequence.length - 1) {
       for (let i = 1; i < sequence.length; i++) {
         const prevPos = positions[i - 1];
-        const direction = directions[i - 1];
+        const directionStr = directions[i - 1];
 
-        let newPos: Position;
+        // Use direction directly (expecting letter format only)
+        const direction = directionStr as Direction;
 
-        switch (direction) {
-          case "left":
-            newPos = { x: prevPos.x - 1, y: prevPos.y, z: prevPos.z };
-            break;
-          case "right":
-            newPos = { x: prevPos.x + 1, y: prevPos.y, z: prevPos.z };
-            break;
-          case "up":
-            newPos = { x: prevPos.x, y: prevPos.y + 1, z: prevPos.z };
-            break;
-          case "down":
-            newPos = { x: prevPos.x, y: prevPos.y - 1, z: prevPos.z };
-            break;
-          default:
-            newPos = { x: prevPos.x + 1, y: prevPos.y, z: prevPos.z };
-        }
+        const positionChange = directionToPosition(direction);
+        const newPos: Position = {
+          x: prevPos.x + positionChange.x,
+          y: prevPos.y + positionChange.y,
+          z: prevPos.z + positionChange.z,
+        };
 
         positions.push(newPos);
       }
@@ -188,26 +172,17 @@ const ExportOptions: React.FC<ExportOptionsProps> = ({
     if (directions && directions.length === sequence.length - 1) {
       for (let i = 1; i < sequence.length; i++) {
         const prevPos = positions[i - 1];
-        const direction = directions[i - 1];
+        const directionStr = directions[i - 1];
 
-        let newPos: Position;
+        // Use direction directly (expecting letter format only)
+        const direction = directionStr as Direction;
 
-        switch (direction) {
-          case "left":
-            newPos = { x: prevPos.x - 1, y: prevPos.y, z: prevPos.z };
-            break;
-          case "right":
-            newPos = { x: prevPos.x + 1, y: prevPos.y, z: prevPos.z };
-            break;
-          case "up":
-            newPos = { x: prevPos.x, y: prevPos.y + 1, z: prevPos.z };
-            break;
-          case "down":
-            newPos = { x: prevPos.x, y: prevPos.y - 1, z: prevPos.z };
-            break;
-          default:
-            newPos = { x: prevPos.x + 1, y: prevPos.y, z: prevPos.z };
-        }
+        const positionChange = directionToPosition(direction);
+        const newPos: Position = {
+          x: prevPos.x + positionChange.x,
+          y: prevPos.y + positionChange.y,
+          z: prevPos.z + positionChange.z,
+        };
 
         positions.push(newPos);
       }

@@ -9,7 +9,8 @@ import {
   Cylinder,
   MeshTransmissionMaterial,
 } from "@react-three/drei";
-import type { Direction } from "./protein-visualizer";
+import type { Direction } from "@/lib/types";
+import { directionToPosition } from "@/lib/utils";
 import type * as THREE from "three";
 
 interface ProteinModelProps {
@@ -42,9 +43,7 @@ const ProteinModel: React.FC<ProteinModelProps> = ({
     if (!directions) {
       for (let i = 0; i < sequence.length - 1; i++) {
         // Simple alternating pattern
-        defaultDirections.push(
-          i % 2 === 0 ? "right" : i % 4 === 1 ? "up" : "down"
-        );
+        defaultDirections.push(i % 2 === 0 ? "R" : i % 4 === 1 ? "U" : "D");
       }
     }
 
@@ -58,24 +57,12 @@ const ProteinModel: React.FC<ProteinModelProps> = ({
       const prevPos = positions[i - 1];
       const direction = dirs[i - 1];
 
-      let newPos: Position;
-
-      switch (direction) {
-        case "left":
-          newPos = { x: prevPos.x - 1, y: prevPos.y, z: prevPos.z };
-          break;
-        case "right":
-          newPos = { x: prevPos.x + 1, y: prevPos.y, z: prevPos.z };
-          break;
-        case "up":
-          newPos = { x: prevPos.x, y: prevPos.y + 1, z: prevPos.z };
-          break;
-        case "down":
-          newPos = { x: prevPos.x, y: prevPos.y - 1, z: prevPos.z };
-          break;
-        default:
-          newPos = { x: prevPos.x + 1, y: prevPos.y, z: prevPos.z };
-      }
+      const positionChange = directionToPosition(direction);
+      const newPos: Position = {
+        x: prevPos.x + positionChange.x,
+        y: prevPos.y + positionChange.y,
+        z: prevPos.z + positionChange.z,
+      };
 
       positions.push(newPos);
       bonds.push([i - 1, i]);
