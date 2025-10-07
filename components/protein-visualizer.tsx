@@ -590,7 +590,7 @@ const ProteinVisualizer = () => {
                 </TabsTrigger>
                 <TabsTrigger value="energy">
                   <BarChart2 className="w-4 h-4 mr-2" />
-                  Energy
+                  Solver
                 </TabsTrigger>
                 <TabsTrigger value="comparison">
                   <Share2 className="w-4 h-4 mr-2" />
@@ -713,9 +713,9 @@ const ProteinVisualizer = () => {
                     <CardContent className="pt-6">
                       <div className="flex flex-col items-center justify-center space-y-4 py-8">
                         <p className="text-gray-600 text-center">
-                          Please provide a protein sequence to perform energy
-                          minimization. The sequence should consist of H
-                          (hydrophobic) and P (polar) residues.
+                          Please provide a protein sequence to use the solver.
+                          The sequence should consist of H (hydrophobic) and P
+                          (polar) residues.
                         </p>
                       </div>
                     </CardContent>
