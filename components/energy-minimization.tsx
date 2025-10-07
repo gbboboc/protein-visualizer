@@ -111,8 +111,9 @@ const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
     let energy = 0;
     for (let i = 0; i < seq.length; i++) {
       if (seq[i] === "H") {
-        for (let j = 0; j < seq.length; j++) {
-          if (seq[j] === "H" && Math.abs(i - j) > 1) {
+        // Only check positions after i to avoid double counting
+        for (let j = i + 2; j < seq.length; j++) {
+          if (seq[j] === "H") {
             // Check if positions are adjacent but not directly connected
             const dx = Math.abs(positions[i].x - positions[j].x);
             const dy = Math.abs(positions[i].y - positions[j].y);

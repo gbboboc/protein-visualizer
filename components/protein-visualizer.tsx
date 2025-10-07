@@ -39,7 +39,7 @@ import { useSession } from "next-auth/react";
 import ProteinModel from "@/components/protein-model";
 import ProteinAnalysis from "@/components/protein-analysis";
 import ProteinComparison from "@/components/protein-comparison";
-import EnergyMinimization from "@/components/energy-minimization";
+import ProteinSolver from "@/components/protein-solver";
 import ExportOptions from "@/components/export-options";
 import { getPublicProteins, saveProtein } from "@/app/actions";
 import { SavedContentDialog } from "./saved-content-dialog";
@@ -295,23 +295,21 @@ const ProteinVisualizer = () => {
   };
 
   const handleOptimizationComplete = (
-    optimizedDirections: string[],
+    optimizedDirections: Direction[],
     energy: number
   ) => {
-    // Use optimized directions directly (assuming they're already in letter format)
-    const letterDirections = optimizedDirections as Direction[];
-    setDirections(directionsToString(letterDirections));
+    setDirections(directionsToString(optimizedDirections));
     setProteinData((prev) => {
       if (!prev) return null;
       return {
         ...prev,
-        directions: letterDirections,
+        directions: optimizedDirections,
       };
     });
 
     toast({
-      title: "Optimization Complete",
-      description: `Optimized structure with energy: ${energy}`,
+      title: "Solver Complete",
+      description: `Found conformation with energy: ${energy}`,
     });
   };
 
@@ -702,25 +700,11 @@ const ProteinVisualizer = () => {
               </Dialog>
 
               <TabsContent value="energy" className="space-y-4">
-                {proteinData ? (
-                  <EnergyMinimization
-                    sequence={proteinData.sequence}
-                    initialDirections={proteinData.directions}
-                    onOptimizationComplete={handleOptimizationComplete}
-                  />
-                ) : (
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex flex-col items-center justify-center space-y-4 py-8">
-                        <p className="text-gray-600 text-center">
-                          Please provide a protein sequence to use the solver.
-                          The sequence should consist of H (hydrophobic) and P
-                          (polar) residues.
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                <ProteinSolver
+                  sequence={proteinData?.sequence || ""}
+                  initialDirections={proteinData?.directions}
+                  onOptimizationComplete={handleOptimizationComplete}
+                />
               </TabsContent>
 
               <TabsContent
