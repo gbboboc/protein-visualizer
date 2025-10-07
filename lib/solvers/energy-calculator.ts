@@ -4,8 +4,9 @@ import { Position, Conformation } from "./types";
 
 export class EnergyCalculator {
   /**
-   * Calculates the energy of a protein conformation using the HP model
+   * Calculates the energy of a protein conformation using the standard HP model
    * Energy is based on H-H contacts between non-adjacent residues
+   * Each H-H contact contributes -1 to the total energy
    */
   static calculateEnergy(sequence: string, directions: Direction[]): number {
     const positions = this.calculatePositions(sequence, directions);
@@ -76,7 +77,8 @@ export class EnergyCalculator {
   private static calculateContactEnergy(sequence: string, positions: Position[]): number {
     let energy = 0;
     
-    // Calculate energy based on H-H contacts (not directly connected)
+    // Standard HP model: only H-H contacts contribute to energy
+    // Each H-H contact contributes -1 to energy (stabilizing)
     for (let i = 0; i < sequence.length; i++) {
       if (sequence[i] === "H") {
         // Only check positions after i+1 to avoid double counting and adjacent contacts

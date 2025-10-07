@@ -1,5 +1,5 @@
 import { Direction } from "../types";
-import { BaseSolver, SimulatedAnnealingParameters, SolverResult, Conformation } from "./types";
+import { BaseSolver, SimulatedAnnealingParameters, SolverResult, Conformation, Position } from "./types";
 import { EnergyCalculator } from "./energy-calculator";
 
 export class SimulatedAnnealingSolver extends BaseSolver {
@@ -18,13 +18,19 @@ export class SimulatedAnnealingSolver extends BaseSolver {
     const startTime = Date.now();
     const energyHistory: { iteration: number; energy: number }[] = [];
     
+    // Initialize temperature first
+    let temperature = this.initialTemperature;
+    
     // Initialize with random or provided conformation
     let currentConformation = this.initializeConformation();
     let bestConformation = { ...currentConformation };
     
-    energyHistory.push({ iteration: 0, energy: currentConformation.energy });
-
-    let temperature = this.initialTemperature;
+    energyHistory.push({ 
+      iteration: 0, 
+      energy: currentConformation.energy,
+      bestEnergy: currentConformation.energy,
+      temperature: temperature
+    });
 
     // Simulated Annealing optimization
     for (let iteration = 1; iteration <= this.maxIterations; iteration++) {
@@ -45,10 +51,13 @@ export class SimulatedAnnealingSolver extends BaseSolver {
       temperature = this.updateTemperature(temperature, iteration);
       
       // Record energy history (sample every 10 iterations)
+      // Track both current and best energy to show funnel exploration
       if (iteration % 10 === 0) {
         energyHistory.push({ 
           iteration, 
-          energy: bestConformation.energy 
+          energy: currentConformation.energy,
+          bestEnergy: bestConformation.energy,
+          temperature: temperature
         });
       }
 
@@ -110,8 +119,10 @@ export class SimulatedAnnealingSolver extends BaseSolver {
   }
 
   private updateTemperature(currentTemperature: number, iteration: number): number {
-    // Linear cooling schedule
-    return this.initialTemperature * (1 - iteration / this.maxIterations);
+    // Exponential cooling schedule for better landscape exploration
+    // This creates a more gradual cooling that allows proper funnel navigation
+    const coolingFactor = Math.pow(this.finalTemperature / this.initialTemperature, 1 / this.maxIterations);
+    return this.initialTemperature * Math.pow(coolingFactor, iteration);
   }
 
   /**

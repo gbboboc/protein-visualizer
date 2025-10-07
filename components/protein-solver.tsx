@@ -234,7 +234,7 @@ const ProteinSolver: React.FC<ProteinSolverProps> = ({
                     <div className="text-lg font-bold text-blue-600">
                       {currentResult.bestConformation.energy}
                     </div>
-                    <div className="text-xs text-gray-600">Current Energy</div>
+                    <div className="text-xs text-gray-600">Best Energy</div>
                   </div>
                 </CardContent>
               </Card>
@@ -242,9 +242,13 @@ const ProteinSolver: React.FC<ProteinSolverProps> = ({
                 <CardContent className="pt-3 pb-3">
                   <div className="text-center">
                     <div className="text-lg font-bold text-green-600">
-                      {currentResult.bestConformation.energy}
+                      {currentResult.energyHistory.length > 0
+                        ? currentResult.energyHistory[
+                            currentResult.energyHistory.length - 1
+                          ].energy
+                        : currentResult.bestConformation.energy}
                     </div>
-                    <div className="text-xs text-gray-600">Best Energy</div>
+                    <div className="text-xs text-gray-600">Current Energy</div>
                   </div>
                 </CardContent>
               </Card>
@@ -288,14 +292,37 @@ const ProteinSolver: React.FC<ProteinSolverProps> = ({
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="iteration" />
                       <YAxis />
-                      <Tooltip />
+                      <Tooltip
+                        formatter={(value, name) => {
+                          const numValue =
+                            typeof value === "number"
+                              ? value
+                              : parseFloat(value as string);
+                          if (name === "energy")
+                            return [numValue.toFixed(1), "Current Energy"];
+                          if (name === "bestEnergy")
+                            return [numValue.toFixed(1), "Best Energy"];
+                          if (name === "temperature")
+                            return [numValue.toFixed(2), "Temperature"];
+                          return [value, name];
+                        }}
+                      />
                       <Legend />
                       <Line
                         type="monotone"
                         dataKey="energy"
                         stroke="#8884d8"
+                        strokeWidth={1}
+                        dot={false}
+                        name="Current Energy"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="bestEnergy"
+                        stroke="#22c55e"
                         strokeWidth={2}
                         dot={false}
+                        name="Best Energy"
                       />
                     </LineChart>
                   </ResponsiveContainer>

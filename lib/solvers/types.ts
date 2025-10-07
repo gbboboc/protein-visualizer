@@ -15,7 +15,12 @@ export interface Conformation {
 
 export interface SolverResult {
   bestConformation: Conformation;
-  energyHistory: { iteration: number; energy: number }[];
+  energyHistory: { 
+    iteration: number; 
+    energy: number;
+    bestEnergy?: number;
+    temperature?: number;
+  }[];
   totalIterations: number;
   convergenceTime: number;
 }
