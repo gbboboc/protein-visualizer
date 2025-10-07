@@ -26,6 +26,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { Direction } from "@/lib/types";
 import {
   MonteCarloSolver,
@@ -61,6 +62,9 @@ const ProteinSolver: React.FC<ProteinSolverProps> = ({
   const [bestConformation, setBestConformation] = useState<Conformation | null>(
     null
   );
+
+  // UI state
+  const [showDetails, setShowDetails] = useState(false);
 
   const runSolver = async () => {
     if (!sequence) return;
@@ -110,12 +114,6 @@ const ProteinSolver: React.FC<ProteinSolverProps> = ({
     }
   };
 
-  const resetSolver = () => {
-    setCurrentResult(null);
-    setBestConformation(null);
-    setProgress(0);
-  };
-
   if (!sequence) {
     return (
       <Card>
@@ -132,169 +130,138 @@ const ProteinSolver: React.FC<ProteinSolverProps> = ({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Algorithm Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Solver Configuration</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Algorithm</Label>
-            <Select
-              value={algorithmType}
-              onValueChange={(value: AlgorithmType) => setAlgorithmType(value)}
-              disabled={isRunning}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="monte-carlo">
-                  Monte Carlo Sampling
-                </SelectItem>
-                <SelectItem value="simulated-annealing">
-                  Simulated Annealing
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Iterations: {iterations[0]}</Label>
-            <Slider
-              value={iterations}
-              onValueChange={setIterations}
-              min={100}
-              max={10000}
-              step={100}
-              disabled={isRunning}
-            />
-          </div>
-
-          {algorithmType === "monte-carlo" && (
-            <div className="space-y-2">
-              <Label>Population Size: {populationSize[0]}</Label>
-              <Slider
-                value={populationSize}
-                onValueChange={setPopulationSize}
-                min={10}
-                max={200}
-                step={10}
-                disabled={isRunning}
-              />
-            </div>
-          )}
-
-          {algorithmType === "simulated-annealing" && (
-            <div className="space-y-2">
-              <Label>Initial Temperature: {temperature[0]}</Label>
-              <Slider
-                value={temperature}
-                onValueChange={setTemperature}
-                min={1}
-                max={50}
-                step={1}
-                disabled={isRunning}
-              />
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            <Button onClick={runSolver} disabled={isRunning} className="flex-1">
-              {isRunning ? "Running..." : "Run Solver"}
-            </Button>
-            <Button
-              onClick={resetSolver}
-              variant="outline"
-              disabled={isRunning}
-            >
-              Reset
-            </Button>
-          </div>
-
-          {isRunning && (
-            <div className="space-y-2">
-              <Label>Progress</Label>
-              <Progress value={progress} />
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Results */}
-      {currentResult && (
-        <>
-          {/* Statistics */}
+    <div className="space-y-4">
+      {/* Main Layout Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Left Column: Configuration + Energy */}
+        <div className="space-y-4">
+          {/* Compact Algorithm Configuration */}
           <Card>
-            <CardHeader>
-              <CardTitle>Results</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Solver Configuration</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
-                    {currentResult.bestConformation.energy}
-                  </div>
-                  <div className="text-sm text-gray-600">Best Energy</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">
-                    {currentResult.totalIterations}
-                  </div>
-                  <div className="text-sm text-gray-600">Iterations</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">
-                    {currentResult.convergenceTime}ms
-                  </div>
-                  <div className="text-sm text-gray-600">Time</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">
-                    {currentResult.bestConformation.directions.join("")}
-                  </div>
-                  <div className="text-sm text-gray-600">Best Directions</div>
-                </div>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <Label>Algorithm</Label>
+                <Select
+                  value={algorithmType}
+                  onValueChange={(value: AlgorithmType) =>
+                    setAlgorithmType(value)
+                  }
+                  disabled={isRunning}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monte-carlo">
+                      Monte Carlo Sampling
+                    </SelectItem>
+                    <SelectItem value="simulated-annealing">
+                      Simulated Annealing
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm">Iterations: {iterations[0]}</Label>
+                <Slider
+                  value={iterations}
+                  onValueChange={setIterations}
+                  min={100}
+                  max={10000}
+                  step={100}
+                  disabled={isRunning}
+                />
+              </div>
+
+              {algorithmType === "monte-carlo" && (
+                <div className="space-y-2">
+                  <Label className="text-sm">
+                    Population Size: {populationSize[0]}
+                  </Label>
+                  <Slider
+                    value={populationSize}
+                    onValueChange={setPopulationSize}
+                    min={10}
+                    max={200}
+                    step={10}
+                    disabled={isRunning}
+                  />
+                </div>
+              )}
+
+              {algorithmType === "simulated-annealing" && (
+                <div className="space-y-2">
+                  <Label className="text-sm">
+                    Initial Temperature: {temperature[0]}
+                  </Label>
+                  <Slider
+                    value={temperature}
+                    onValueChange={setTemperature}
+                    min={1}
+                    max={50}
+                    step={1}
+                    disabled={isRunning}
+                  />
+                </div>
+              )}
+
+              <Button
+                onClick={runSolver}
+                disabled={isRunning}
+                className="w-full"
+              >
+                {isRunning ? "Running..." : "Start Optimization"}
+              </Button>
+
+              {isRunning && (
+                <div className="space-y-2">
+                  <Label className="text-sm">Progress</Label>
+                  <Progress value={progress} />
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Energy Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Energy Evolution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={currentResult.energyHistory}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="iteration" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="energy"
-                      stroke="#8884d8"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Energy Windows - Smaller */}
+          {currentResult && (
+            <div className="grid grid-cols-2 gap-2">
+              <Card>
+                <CardContent className="pt-3 pb-3">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-blue-600">
+                      {currentResult.bestConformation.energy}
+                    </div>
+                    <div className="text-xs text-gray-600">Current Energy</div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-3 pb-3">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-green-600">
+                      {currentResult.bestConformation.energy}
+                    </div>
+                    <div className="text-xs text-gray-600">Best Energy</div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
 
-          {/* 3D Visualization */}
-          {bestConformation && (
+        {/* Right Column: Visualization + Energy Evolution */}
+        {currentResult && bestConformation && (
+          <div className="space-y-4">
+            {/* Primary Visualization */}
             <Card>
-              <CardHeader>
-                <CardTitle>Best Conformation</CardTitle>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Visualization</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-64 bg-gray-50 rounded-md overflow-hidden">
+                <div className="h-48 bg-gray-50 rounded-md overflow-hidden">
                   <Canvas>
                     <ambientLight intensity={0.5} />
                     <directionalLight position={[10, 10, 10]} intensity={1} />
@@ -308,8 +275,96 @@ const ProteinSolver: React.FC<ProteinSolverProps> = ({
                 </div>
               </CardContent>
             </Card>
+
+            {/* Detailed Energy Evolution */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Energy Evolution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-48">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={currentResult.energyHistory}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="iteration" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="energy"
+                        stroke="#8884d8"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+
+      {/* Show Details Section */}
+      {currentResult && (
+        <div className="space-y-4">
+          {/* Expandable Details Button */}
+          <Button
+            variant="outline"
+            onClick={() => setShowDetails(!showDetails)}
+            className="w-full"
+          >
+            {showDetails ? (
+              <>
+                <ChevronUp className="w-4 h-4 mr-2" />
+                Hide Details
+              </>
+            ) : (
+              <>
+                <ChevronDown className="w-4 h-4 mr-2" />
+                Show Details
+              </>
+            )}
+          </Button>
+
+          {/* Detailed Results - Expandable */}
+          {showDetails && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Detailed Results</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <div className="text-xl font-bold text-green-600">
+                      {currentResult.bestConformation.energy}
+                    </div>
+                    <div className="text-sm text-gray-600">Best Energy</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xl font-bold">
+                      {currentResult.totalIterations}
+                    </div>
+                    <div className="text-sm text-gray-600">Iterations</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xl font-bold">
+                      {currentResult.convergenceTime}ms
+                    </div>
+                    <div className="text-sm text-gray-600">Time</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xl font-bold font-mono">
+                      {currentResult.bestConformation.directions.join("")}
+                    </div>
+                    <div className="text-sm text-gray-600">Best Directions</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
-        </>
+        </div>
       )}
     </div>
   );
