@@ -25,12 +25,7 @@ export class SimulatedAnnealingSolver extends BaseSolver {
     let currentConformation = this.initializeConformation();
     let bestConformation = { ...currentConformation };
     
-    energyHistory.push({ 
-      iteration: 0, 
-      energy: currentConformation.energy,
-      bestEnergy: currentConformation.energy,
-      temperature: temperature
-    });
+    energyHistory.push({ iteration: 0, energy: currentConformation.energy });
 
     // Simulated Annealing optimization
     for (let iteration = 1; iteration <= this.maxIterations; iteration++) {
@@ -55,9 +50,7 @@ export class SimulatedAnnealingSolver extends BaseSolver {
       if (iteration % 10 === 0) {
         energyHistory.push({ 
           iteration, 
-          energy: currentConformation.energy,
-          bestEnergy: bestConformation.energy,
-          temperature: temperature
+          energy: bestConformation.energy 
         });
       }
 
