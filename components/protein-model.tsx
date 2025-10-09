@@ -114,18 +114,29 @@ const ProteinModel: React.FC<ProteinModelProps> = ({
             />
           ))}
 
-          {/* Render amino acids as spheres */}
+          {/* Render amino acids: flat discs for 2D, spheres for 3D */}
           {positions.map((pos, index) => (
             <group key={`amino-${index}`} position={[pos.x, pos.y, pos.z]}>
-              <mesh>
-                <sphereGeometry args={[0.3, 16, 16]} />
-                <meshStandardMaterial
-                  color={sequence[index] === "H" ? "#ff6b6b" : "#4dabf7"}
-                  roughness={0.5}
-                />
+              <mesh rotation={type === "2d" ? [-Math.PI / 2, 0, 0] : [0, 0, 0]}>
+                {type === "2d" ? (
+                  <>
+                    <circleGeometry args={[0.35, 32]} />
+                    <meshBasicMaterial
+                      color={sequence[index] === "H" ? "#ff6b6b" : "#4dabf7"}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <sphereGeometry args={[0.3, 16, 16]} />
+                    <meshStandardMaterial
+                      color={sequence[index] === "H" ? "#ff6b6b" : "#4dabf7"}
+                      roughness={0.5}
+                    />
+                  </>
+                )}
               </mesh>
               <Text
-                position={[0, 0.5, 0]}
+                position={[0, type === "2d" ? 0.01 : 0.5, 0]}
                 fontSize={0.3}
                 color="black"
                 anchorX="center"

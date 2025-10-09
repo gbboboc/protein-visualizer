@@ -625,13 +625,15 @@ const ProteinVisualizer = () => {
                       <Canvas style={{ width: "100%", height: "100%" }}>
                         <OrthographicCamera
                           makeDefault
-                          position={[0, 0, 10]}
+                          position={
+                            visualizationType === "2d" ? [0, 0, 20] : [0, 0, 10]
+                          }
                           near={0.1}
                           far={1000}
-                          zoom={50}
+                          zoom={visualizationType === "2d" ? 60 : 50}
                         />
                         <OrbitControls
-                          enableRotate
+                          enableRotate={visualizationType !== "2d"}
                           enablePan
                           enableZoom
                           screenSpacePanning
@@ -677,13 +679,15 @@ const ProteinVisualizer = () => {
                     <Canvas style={{ width: "100%", height: "100%" }}>
                       <OrthographicCamera
                         makeDefault
-                        position={[0, 0, 10]}
+                        position={
+                          visualizationType === "2d" ? [0, 0, 20] : [0, 0, 10]
+                        }
                         near={0.1}
                         far={1000}
-                        zoom={50}
+                        zoom={visualizationType === "2d" ? 60 : 50}
                       />
                       <OrbitControls
-                        enableRotate
+                        enableRotate={visualizationType !== "2d"}
                         enablePan
                         enableZoom
                         screenSpacePanning
