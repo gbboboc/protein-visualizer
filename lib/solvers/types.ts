@@ -24,6 +24,7 @@ export interface SolverParameters {
   maxIterations: number;
   sequence: string;
   initialDirections?: Direction[];
+  onProgress?: (progress: any) => void;
 }
 
 export interface MonteCarloParameters extends SolverParameters {
@@ -39,13 +40,20 @@ export interface SimulatedAnnealingParameters extends SolverParameters {
 export abstract class BaseSolver {
   protected sequence: string;
   protected maxIterations: number;
+  protected isStopped: boolean = false;
+  protected onProgress?: (progress: any) => void;
 
   constructor(parameters: SolverParameters) {
     this.sequence = parameters.sequence;
     this.maxIterations = parameters.maxIterations;
+    this.onProgress = parameters.onProgress;
   }
 
   abstract solve(): Promise<SolverResult>;
+
+  stop(): void {
+    this.isStopped = true;
+  }
 
   protected generateRandomDirections(): Direction[] {
     const directions: Direction[] = [];

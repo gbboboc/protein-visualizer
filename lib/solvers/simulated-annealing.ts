@@ -29,6 +29,11 @@ export class SimulatedAnnealingSolver extends BaseSolver {
 
     // Simulated Annealing optimization
     for (let iteration = 1; iteration <= this.maxIterations; iteration++) {
+      // Check if solver was stopped
+      if (this.isStopped) {
+        break;
+      }
+
       // Generate neighbor conformation
       const neighborConformation = this.generateNeighbor(currentConformation);
       
@@ -51,6 +56,16 @@ export class SimulatedAnnealingSolver extends BaseSolver {
         energyHistory.push({ 
           iteration, 
           energy: bestConformation.energy 
+        });
+      }
+
+      // Progress callback
+      if (this.onProgress && iteration % 10 === 0) {
+        this.onProgress({
+          iteration,
+          currentEnergy: currentConformation.energy,
+          bestEnergy: bestConformation.energy,
+          progress: (iteration / this.maxIterations) * 100
         });
       }
 

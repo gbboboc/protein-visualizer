@@ -39,7 +39,7 @@ import { useSession } from "next-auth/react";
 import ProteinModel from "@/components/protein-model";
 import ProteinAnalysis from "@/components/protein-analysis";
 import ProteinComparison from "@/components/protein-comparison";
-import ProteinSolver from "@/components/protein-solver";
+import ProteinSolver from "@/components/protein-solver-refactored";
 import ExportOptions from "@/components/export-options";
 import { getPublicProteins, saveProtein } from "@/app/actions";
 import { SavedContentDialog } from "./saved-content-dialog";

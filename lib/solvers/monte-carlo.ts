@@ -26,6 +26,11 @@ export class MonteCarloSolver extends BaseSolver {
 
     // Monte Carlo sampling - focus on exploration, not optimization
     for (let iteration = 1; iteration <= this.maxIterations; iteration++) {
+      // Check if solver was stopped
+      if (this.isStopped) {
+        break;
+      }
+
       // Generate new samples through random sampling
       this.performSamplingIteration();
       
@@ -41,6 +46,16 @@ export class MonteCarloSolver extends BaseSolver {
         energyHistory.push({ 
           iteration, 
           energy: averageEnergy  // Track population average, not just best
+        });
+      }
+
+      // Progress callback
+      if (this.onProgress && iteration % 10 === 0) {
+        this.onProgress({
+          iteration,
+          currentEnergy: averageEnergy,
+          bestEnergy: bestConformation.energy,
+          progress: (iteration / this.maxIterations) * 100
         });
       }
 
