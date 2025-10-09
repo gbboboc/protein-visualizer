@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, OrthographicCamera } from "@react-three/drei";
 import ProteinModel from "./protein-model";
 import {
   LineChart,
@@ -263,9 +263,22 @@ const ProteinSolver: React.FC<ProteinSolverProps> = ({
               <CardContent>
                 <div className="h-48 bg-gray-50 rounded-md overflow-hidden">
                   <Canvas>
+                    <OrthographicCamera
+                      makeDefault
+                      position={[0, 0, 10]}
+                      near={0.1}
+                      far={1000}
+                      zoom={40}
+                    />
                     <ambientLight intensity={0.5} />
                     <directionalLight position={[10, 10, 10]} intensity={1} />
-                    <OrbitControls enablePan enableZoom enableRotate />
+                    <OrbitControls
+                      enableRotate
+                      enablePan
+                      enableZoom
+                      screenSpacePanning
+                      target={[0, 0, 0]}
+                    />
                     <ProteinModel
                       sequence={bestConformation.sequence}
                       directions={bestConformation.directions}

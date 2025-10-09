@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { useFrame } from "@react-three/fiber";
 import {
   Line,
   Text,
@@ -11,7 +10,7 @@ import {
 } from "@react-three/drei";
 import type { Direction } from "@/lib/types";
 import { directionToPosition } from "@/lib/utils";
-import type * as THREE from "three";
+// No THREE types needed since we removed runtime rotation
 
 interface ProteinModelProps {
   sequence: string;
@@ -30,8 +29,7 @@ const ProteinModel: React.FC<ProteinModelProps> = ({
   directions,
   type,
 }) => {
-  // Reference for rotation animation
-  const groupRef = React.useRef<THREE.Group>(null);
+  // Model is static; no rotation/animation refs required
 
   // Generate positions for each amino acid in the sequence
   const { positions, bonds } = useMemo(() => {
@@ -68,23 +66,15 @@ const ProteinModel: React.FC<ProteinModelProps> = ({
       bonds.push([i - 1, i]);
     }
 
-    // For 3D visualization, add some z-axis variation
-    if (type === "3d" || type === "ribbon" || type === "surface") {
-      for (let i = 0; i < positions.length; i++) {
-        // Add a slight curve to make it more 3D
-        positions[i].z = Math.sin(i * 0.5) * 0.5;
-      }
+    // Force a strictly planar layout: all positions on the same Z=0 plane
+    for (let i = 0; i < positions.length; i++) {
+      positions[i].z = 0;
     }
 
     return { positions, bonds };
   }, [sequence, directions, type]);
 
-  // Animate rotation
-  useFrame((state) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y = state.clock.getElapsedTime() * 0.1;
-    }
-  });
+  // No animation: the protein model remains completely static
 
   // Center the model
   const center = useMemo(() => {
@@ -107,7 +97,7 @@ const ProteinModel: React.FC<ProteinModelProps> = ({
   }, [positions, type]);
 
   return (
-    <group ref={groupRef} position={[-center.x, -center.y, -center.z]}>
+    <group position={[-center.x, -center.y, -center.z]}>
       {/* Render based on visualization type */}
       {type === "2d" || type === "3d" ? (
         <>

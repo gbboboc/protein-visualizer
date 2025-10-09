@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
+import { OrbitControls, OrthographicCamera } from "@react-three/drei";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -622,16 +622,20 @@ const ProteinVisualizer = () => {
                           <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
                         </svg>
                       </button>
-                      <Canvas
-                        camera={{ position: [5, 5, 10], fov: 50 }}
-                        style={{ width: "100%", height: "100%" }}
-                      >
-                        <PerspectiveCamera makeDefault position={[5, 5, 10]} />
+                      <Canvas style={{ width: "100%", height: "100%" }}>
+                        <OrthographicCamera
+                          makeDefault
+                          position={[0, 0, 10]}
+                          near={0.1}
+                          far={1000}
+                          zoom={50}
+                        />
                         <OrbitControls
-                          enableDamping
-                          dampingFactor={0.1}
-                          minDistance={2}
-                          maxDistance={20}
+                          enableRotate
+                          enablePan
+                          enableZoom
+                          screenSpacePanning
+                          target={[0, 0, 0]}
                         />
                         <ambientLight intensity={0.8} />
                         <directionalLight
@@ -670,16 +674,20 @@ const ProteinVisualizer = () => {
                     <DialogTitle>Protein Visualization</DialogTitle>
                   </DialogHeader>
                   <div className="w-full h-full bg-gray-50 rounded-lg">
-                    <Canvas
-                      camera={{ position: [5, 5, 10], fov: 50 }}
-                      style={{ width: "100%", height: "100%" }}
-                    >
-                      <PerspectiveCamera makeDefault position={[5, 5, 10]} />
+                    <Canvas style={{ width: "100%", height: "100%" }}>
+                      <OrthographicCamera
+                        makeDefault
+                        position={[0, 0, 10]}
+                        near={0.1}
+                        far={1000}
+                        zoom={50}
+                      />
                       <OrbitControls
-                        enableDamping
-                        dampingFactor={0.1}
-                        minDistance={2}
-                        maxDistance={20}
+                        enableRotate
+                        enablePan
+                        enableZoom
+                        screenSpacePanning
+                        target={[0, 0, 0]}
                       />
                       <ambientLight intensity={0.8} />
                       <directionalLight position={[10, 10, 10]} intensity={1} />
