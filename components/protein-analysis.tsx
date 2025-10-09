@@ -3,13 +3,15 @@
 import type React from "react";
 import type { ProteinSequence } from "./protein-visualizer";
 import { Progress } from "@/components/ui/progress";
+import { EnergyCalculator } from "@/lib/solvers/energy-calculator";
+import { Direction } from "@/lib/types";
 
 interface ProteinAnalysisProps {
   proteinData: ProteinSequence;
 }
 
 const ProteinAnalysis: React.FC<ProteinAnalysisProps> = ({ proteinData }) => {
-  const { sequence } = proteinData;
+  const { sequence, directions } = proteinData;
 
   // Calculate basic statistics
   const totalResidues = sequence.length;
@@ -18,40 +20,133 @@ const ProteinAnalysis: React.FC<ProteinAnalysisProps> = ({ proteinData }) => {
   const hydrophobicPercentage = (hydrophobicCount / totalResidues) * 100;
   const polarPercentage = (polarCount / totalResidues) * 100;
 
-  // Calculate hydrophobic interactions (simplified)
-  // In a real application, this would be based on the actual 3D structure
-  const calculateHydrophobicInteractions = () => {
-    let count = 0;
-    for (let i = 0; i < sequence.length - 1; i++) {
-      if (sequence[i] === "H" && sequence[i + 1] === "H") {
-        count++;
-      }
+  // Calculate real metrics using the energy calculator
+  const calculateMetrics = () => {
+    if (!directions || directions.length === 0) {
+      return {
+        energy: 0,
+        collisions: 0,
+        hydrophobicContacts: 0,
+        isValid: true,
+      };
     }
-    return count;
+
+    try {
+      // Use the proper energy calculator
+      const energy = EnergyCalculator.calculateEnergy(sequence, directions);
+
+      // Calculate positions to check for collisions
+      const positions = EnergyCalculator.calculatePositions(
+        sequence,
+        directions
+      );
+
+      // Count collisions (self-intersections)
+      const occupied = new Set<string>();
+      let collisions = 0;
+
+      for (const pos of positions) {
+        const posKey = `${pos.x},${pos.y},${pos.z}`;
+        if (occupied.has(posKey)) {
+          collisions++;
+        } else {
+          occupied.add(posKey);
+        }
+      }
+
+      // Count H-H contacts for display
+      let hydrophobicContacts = 0;
+      if (energy !== Number.POSITIVE_INFINITY) {
+        for (let i = 0; i < sequence.length; i++) {
+          if (sequence[i] === "H") {
+            for (let j = i + 2; j < sequence.length; j++) {
+              if (sequence[j] === "H") {
+                const dx = Math.abs(positions[i].x - positions[j].x);
+                const dy = Math.abs(positions[i].y - positions[j].y);
+                const dz = Math.abs(positions[i].z - positions[j].z);
+                if (dx + dy + dz === 1) {
+                  hydrophobicContacts++;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      return {
+        energy: energy === Number.POSITIVE_INFINITY ? 0 : energy,
+        collisions,
+        hydrophobicContacts,
+        isValid: energy !== Number.POSITIVE_INFINITY,
+      };
+    } catch (error) {
+      console.error("Error calculating metrics:", error);
+      return {
+        energy: 0,
+        collisions: 0,
+        hydrophobicContacts: 0,
+        isValid: false,
+      };
+    }
   };
 
-  const hydrophobicInteractions = calculateHydrophobicInteractions();
-
-  // Calculate estimated energy (simplified HP model)
-  // In the HP model, each H-H contact contributes -1 to the energy
-  const estimatedEnergy = -hydrophobicInteractions;
+  const metrics = calculateMetrics();
 
   return (
     <div className="space-y-4">
+      {/* Real-time Metrics */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-gray-50 p-3 rounded-md">
           <h3 className="text-sm font-medium text-gray-700">Total Residues</h3>
           <p className="text-2xl font-bold text-indigo-700">{totalResidues}</p>
         </div>
-        <div className="bg-gray-50 p-3 rounded-md">
-          <h3 className="text-sm font-medium text-gray-700">
-            Estimated Energy
-          </h3>
-          <p className="text-2xl font-bold text-indigo-700">
-            {estimatedEnergy}
+        <div
+          className={`p-3 rounded-md ${
+            metrics.isValid ? "bg-green-50" : "bg-red-50"
+          }`}
+        >
+          <h3 className="text-sm font-medium text-gray-700">Energy Score</h3>
+          <p
+            className={`text-2xl font-bold ${
+              metrics.isValid ? "text-green-700" : "text-red-700"
+            }`}
+          >
+            {metrics.energy}
           </p>
         </div>
       </div>
+
+      {/* Collision and Contact Metrics */}
+      <div className="grid grid-cols-2 gap-4">
+        <div
+          className={`p-3 rounded-md ${
+            metrics.collisions > 0 ? "bg-red-50" : "bg-green-50"
+          }`}
+        >
+          <h3 className="text-sm font-medium text-gray-700">Collisions</h3>
+          <p
+            className={`text-2xl font-bold ${
+              metrics.collisions > 0 ? "text-red-700" : "text-green-700"
+            }`}
+          >
+            {metrics.collisions}
+          </p>
+        </div>
+        <div className="bg-gray-50 p-3 rounded-md">
+          <h3 className="text-sm font-medium text-gray-700">H-H Contacts</h3>
+          <p className="text-2xl font-bold text-blue-700">
+            {metrics.hydrophobicContacts}
+          </p>
+        </div>
+      </div>
+
+      {/* Status Indicator */}
+      {!metrics.isValid && (
+        <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-md">
+          <strong>Invalid Configuration:</strong> The current folding directions
+          create collisions or are invalid.
+        </div>
+      )}
 
       <div className="space-y-2">
         <div>
@@ -103,12 +198,14 @@ const ProteinAnalysis: React.FC<ProteinAnalysisProps> = ({ proteinData }) => {
 
       <div>
         <h3 className="text-sm font-medium text-gray-700 mb-2">
-          Hydrophobic Interactions
+          Real-time Analysis
         </h3>
         <p className="text-sm text-gray-600">
-          This protein has approximately {hydrophobicInteractions} hydrophobic
-          interactions. In the HP model, hydrophobic interactions are the
-          primary driving force for protein folding.
+          Energy: {metrics.energy} (lower is better), Collisions:{" "}
+          {metrics.collisions} (0 is optimal), H-H Contacts:{" "}
+          {metrics.hydrophobicContacts}. In the HP model, hydrophobic contacts
+          contribute -1 energy each and are the primary driving force for
+          protein folding.
         </p>
       </div>
     </div>

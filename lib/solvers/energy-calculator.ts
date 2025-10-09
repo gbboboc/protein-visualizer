@@ -36,7 +36,7 @@ export class EnergyCalculator {
     };
   }
 
-  private static calculatePositions(sequence: string, directions: Direction[]): Position[] {
+  static calculatePositions(sequence: string, directions: Direction[]): Position[] {
     const positions: Position[] = [];
     
     // Start with the first amino acid at the origin
