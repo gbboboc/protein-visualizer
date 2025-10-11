@@ -420,5 +420,3 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
 };
 
 export default ProteinSolverRefactored;
-
-
