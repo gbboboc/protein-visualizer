@@ -11,8 +11,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Database } from "lucide-react";
+import { Database, Trash2, Loader2 } from "lucide-react";
 import { getPublicProteins } from "@/app/actions";
 import type { ProteinSequence } from "./protein-visualizer";
 import { Direction } from "@/lib/types";
@@ -36,6 +46,12 @@ export function SavedContentDialog({
   const [savedProteins, setSavedProteins] = useState<ProteinSequence[]>([]);
   const [savedComparisons, setSavedComparisons] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [deletingProteinId, setDeletingProteinId] = useState<string | null>(
+    null
+  );
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [proteinToDelete, setProteinToDelete] =
+    useState<ProteinSequence | null>(null);
 
   const fetchSavedContent = async () => {
     try {
@@ -47,14 +63,28 @@ export function SavedContentDialog({
         throw new Error(proteinsError);
       }
       if (proteinsData) {
-        setSavedProteins(
-          proteinsData.map((protein) => ({
+        console.log("Raw proteins data from database:", proteinsData);
+        const processedProteins = proteinsData.map((protein) => {
+          console.log(
+            "Processing protein:",
+            protein.name,
+            "Raw directions:",
+            protein.directions
+          );
+          const processedProtein = {
             ...protein,
-            directions: protein.directions
-              ? parseDirections(protein.directions)
-              : undefined,
-          }))
-        );
+            directions:
+              protein.directions && Array.isArray(protein.directions)
+                ? (protein.directions as Direction[])
+                : protein.directions && typeof protein.directions === "string"
+                ? parseDirections(protein.directions)
+                : undefined,
+          };
+          console.log("Processed directions:", processedProtein.directions);
+          return processedProtein;
+        });
+        console.log("Final processed proteins:", processedProteins);
+        setSavedProteins(processedProteins);
       }
 
       // Fetch comparisons
@@ -88,6 +118,66 @@ export function SavedContentDialog({
       fetchSavedContent();
     }
   }, [onComparisonSaved]);
+
+  const handleDeleteClick = (protein: ProteinSequence) => {
+    setProteinToDelete(protein);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!proteinToDelete || !session?.user?.id) return;
+
+    try {
+      const proteinId =
+        proteinToDelete._id?.toString() || proteinToDelete.id?.toString();
+      setDeletingProteinId(proteinId || null);
+
+      const response = await fetch("/api/proteins", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          proteinId: proteinToDelete._id || proteinToDelete.id,
+          userId: session.user.id,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete protein");
+      }
+
+      // Remove from local state
+      setSavedProteins((prev) =>
+        prev.filter(
+          (p) => (p._id || p.id) !== (proteinToDelete._id || proteinToDelete.id)
+        )
+      );
+
+      toast({
+        title: "Protein Deleted",
+        description: `"${proteinToDelete.name}" has been deleted successfully.`,
+      });
+    } catch (error) {
+      console.error("Error deleting protein:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to delete protein.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingProteinId(null);
+      setShowDeleteDialog(false);
+      setProteinToDelete(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteDialog(false);
+    setProteinToDelete(null);
+  };
 
   const handleLoadComparison = async (comparison: any) => {
     try {
@@ -152,11 +242,12 @@ export function SavedContentDialog({
 
             return {
               ...data,
-              directions: data.directions
-                ? Array.isArray(data.directions)
-                  ? data.directions
-                  : parseDirections(data.directions)
-                : undefined,
+              directions:
+                data.directions && Array.isArray(data.directions)
+                  ? (data.directions as Direction[])
+                  : data.directions && typeof data.directions === "string"
+                  ? parseDirections(data.directions)
+                  : undefined,
             };
           } catch (error) {
             console.error(`Error fetching protein ${proteinId}:`, error);
@@ -218,6 +309,7 @@ export function SavedContentDialog({
                   <tr>
                     <th className="border p-2 text-left">Name</th>
                     <th className="border p-2 text-left">Sequence</th>
+                    <th className="border p-2 text-left">Directions</th>
                     <th className="border p-2 text-left">Length</th>
                     <th className="border p-2 text-left">Actions</th>
                   </tr>
@@ -225,7 +317,7 @@ export function SavedContentDialog({
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={4} className="border p-4 text-center">
+                      <td colSpan={5} className="border p-4 text-center">
                         Loading...
                       </td>
                     </tr>
@@ -238,6 +330,23 @@ export function SavedContentDialog({
                         <td className="border p-2">{protein.name}</td>
                         <td className="border p-2 font-mono">
                           {protein.sequence}
+                        </td>
+                        <td className="border p-2">
+                          {protein.directions &&
+                          protein.directions.length > 0 ? (
+                            <div className="font-mono text-sm">
+                              {protein.directions.map((dir, i) => (
+                                <span
+                                  key={i}
+                                  className="inline-block w-4 text-center"
+                                >
+                                  {dir}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">No directions</span>
+                          )}
                         </td>
                         <td className="border p-2">
                           {protein.sequence.length}
@@ -258,6 +367,24 @@ export function SavedContentDialog({
                             >
                               Compare
                             </Button>
+                            {session?.user?.id === protein.userId && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDeleteClick(protein)}
+                                disabled={
+                                  deletingProteinId ===
+                                  (protein._id || protein.id?.toString())
+                                }
+                              >
+                                {deletingProteinId ===
+                                (protein._id || protein.id?.toString()) ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-3 h-3" />
+                                )}
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -333,6 +460,56 @@ export function SavedContentDialog({
           </TabsContent>
         </Tabs>
       </DialogContent>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Protein</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{proteinToDelete?.name}"? This
+              action cannot be undone.
+              <br />
+              <span className="text-sm text-muted-foreground mt-2 block">
+                Sequence:{" "}
+                <code className="bg-gray-100 px-1 rounded">
+                  {proteinToDelete?.sequence}
+                </code>
+              </span>
+              {proteinToDelete?.directions &&
+                proteinToDelete.directions.length > 0 && (
+                  <span className="text-sm text-muted-foreground mt-1 block">
+                    Directions:{" "}
+                    <code className="bg-gray-100 px-1 rounded font-mono">
+                      {proteinToDelete.directions.join("")}
+                    </code>
+                  </span>
+                )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDeleteCancel}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingProteinId ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

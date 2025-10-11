@@ -27,9 +27,9 @@ export function convertDocToObj(doc: MongoDoc | MongoDoc[] | null): any {
     if (obj._id) {
       obj._id = obj._id.toString();
     }
-    // Convert any nested ObjectIds
+    // Convert any nested ObjectIds (but preserve arrays)
     Object.keys(obj).forEach(key => {
-      if (obj[key] && obj[key].toString && typeof obj[key].toString === 'function') {
+      if (obj[key] && obj[key].toString && typeof obj[key].toString === 'function' && !Array.isArray(obj[key])) {
         obj[key] = obj[key].toString();
       }
     });
@@ -43,7 +43,7 @@ export function convertDocToObj(doc: MongoDoc | MongoDoc[] | null): any {
       obj._id = obj._id.toString();
     }
     Object.keys(obj).forEach(key => {
-      if (obj[key] && obj[key].toString && typeof obj[key].toString === 'function') {
+      if (obj[key] && obj[key].toString && typeof obj[key].toString === 'function' && !Array.isArray(obj[key])) {
         obj[key] = obj[key].toString();
       }
     });
@@ -54,15 +54,15 @@ export function convertDocToObj(doc: MongoDoc | MongoDoc[] | null): any {
 }
 
 /**
- * Parses direction string with letter format (R, U, D, L) supporting spaces
- * Examples: "RUDL", "RUDL DURL", "R U D L"
+ * Parses direction string with letter format (R, U, D, L) supporting spaces and commas
+ * Examples: "RUDL", "RUDL DURL", "R U D L", "R,U,L,L,D"
  * Only accepts exact letter format - rejects old word format
  */
 export function parseDirections(directionsStr: string): Direction[] {
   if (!directionsStr) return [];
   
-  // Remove all spaces and convert to uppercase
-  const cleanStr = directionsStr.replace(/\s+/g, '').toUpperCase();
+  // Remove all spaces and commas, then convert to uppercase
+  const cleanStr = directionsStr.replace(/[\s,]+/g, '').toUpperCase();
   
   // Check if string contains only valid direction letters
   const validPattern = /^[RUDL]+$/;

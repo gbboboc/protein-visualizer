@@ -100,9 +100,12 @@ const ProteinVisualizer = () => {
         if (proteinsData) {
           const convertedData = proteinsData.map((protein) => ({
             ...protein,
-            directions: protein.directions
-              ? parseDirections(protein.directions)
-              : undefined,
+            directions:
+              protein.directions && Array.isArray(protein.directions)
+                ? (protein.directions as Direction[])
+                : protein.directions && typeof protein.directions === "string"
+                ? parseDirections(protein.directions)
+                : undefined,
           }));
           setSavedProteins(convertedData);
         }

@@ -18,18 +18,20 @@ import ProteinModel from "./protein-model";
 import { Progress } from "@/components/ui/progress";
 import { Download, Save } from "lucide-react";
 
+import { Direction } from "@/lib/types";
+
 export interface ProteinData {
   id?: number;
   name: string;
   sequence: string;
-  directions?: string[];
+  directions?: Direction[];
 }
 
 interface ProteinSequence {
   id?: number;
   name?: string;
   sequence: string;
-  directions?: string[];
+  directions?: Direction[];
 }
 
 interface ProteinComparisonProps {

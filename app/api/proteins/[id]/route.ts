@@ -26,7 +26,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   try {
     await connectDB()
     const body = await request.json()
-    const { name, sequence, description, isPublic } = body
+    const { name, sequence, description, isPublic, directions } = body
+
+    // Ensure directions is an array
+    const directionsArray = Array.isArray(directions) ? directions : []
 
     const protein = await Protein.findByIdAndUpdate(
       params.id,
@@ -35,6 +38,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         sequence,
         description,
         isPublic,
+        directions: directionsArray,
         updatedAt: new Date(),
       },
       { new: true }

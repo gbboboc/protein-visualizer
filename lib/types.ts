@@ -16,7 +16,7 @@ export interface IProtein extends Document {
   sequence: string
   description: string
   isPublic: boolean
-  directions?: string
+  directions?: string[]
   createdAt: Date
   updatedAt: Date
 }
@@ -36,7 +36,7 @@ export type ProteinInput = {
   sequence: string
   description: string
   isPublic: boolean
-  directions?: string
+  directions?: string[]
 }
 
 // For the global mongoose type

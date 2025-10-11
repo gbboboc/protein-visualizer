@@ -27,7 +27,7 @@ interface Position {
 
 interface ExportOptionsProps {
   sequence?: string;
-  directions?: string[];
+  directions?: Direction[];
   proteinName?: string;
   onSaveExport?: (type: string, fileName: string) => void;
   onExport: () => Promise<void>;

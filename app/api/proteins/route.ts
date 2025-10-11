@@ -72,3 +72,41 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    await connectDB()
+    const body = await request.json()
+    const { proteinId, userId } = body
+
+    if (!proteinId || !userId) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    }
+
+    // Find the protein and verify ownership
+    const protein = await Protein.findById(proteinId)
+    if (!protein) {
+      return NextResponse.json({ error: "Protein not found" }, { status: 404 })
+    }
+
+    // Check if user owns the protein
+    if (protein.userId.toString() !== userId) {
+      return NextResponse.json({ error: "Unauthorized: You can only delete your own proteins" }, { status: 403 })
+    }
+
+    // Delete the protein
+    await Protein.findByIdAndDelete(proteinId)
+
+    return NextResponse.json({ 
+      success: true, 
+      message: "Protein deleted successfully",
+      deletedProteinId: proteinId 
+    })
+  } catch (error) {
+    console.error("Error deleting protein:", error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to delete protein" },
+      { status: 500 }
+    )
+  }
+}

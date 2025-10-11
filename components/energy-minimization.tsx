@@ -17,6 +17,7 @@ import { Progress } from "@/components/ui/progress";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import ProteinModel from "./protein-model";
+import { Direction } from "@/lib/types";
 import {
   LineChart,
   Line,
@@ -27,7 +28,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { Direction } from "@/lib/types";
 import { directionToPosition } from "@/lib/utils";
 
 interface Position {
@@ -38,8 +38,8 @@ interface Position {
 
 interface EnergyMinimizationProps {
   sequence: string;
-  initialDirections?: string[];
-  onOptimizationComplete?: (directions: string[], energy: number) => void;
+  initialDirections?: Direction[];
+  onOptimizationComplete?: (directions: Direction[], energy: number) => void;
 }
 
 const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
@@ -52,14 +52,14 @@ const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
   const [iterations, setIterations] = useState<number>(1000);
   const [currentIteration, setCurrentIteration] = useState<number>(0);
   const [isRunning, setIsRunning] = useState<boolean>(false);
-  const [directions, setDirections] = useState<string[]>(
+  const [directions, setDirections] = useState<Direction[]>(
     initialDirections || []
   );
   const [energy, setEnergy] = useState<number>(0);
   const [energyHistory, setEnergyHistory] = useState<
     { iteration: number; energy: number }[]
   >([]);
-  const [bestDirections, setBestDirections] = useState<string[]>([]);
+  const [bestDirections, setBestDirections] = useState<Direction[]>([]);
   const [bestEnergy, setBestEnergy] = useState<number>(0);
 
   // Initialize directions if not provided
@@ -67,7 +67,9 @@ const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
     if (!initialDirections || initialDirections.length === 0) {
       const defaultDirections = Array(sequence.length - 1)
         .fill("")
-        .map((_, i) => (i % 2 === 0 ? "R" : i % 4 === 1 ? "U" : "D"));
+        .map(
+          (_, i) => (i % 2 === 0 ? "R" : i % 4 === 1 ? "U" : "D") as Direction
+        );
       setDirections(defaultDirections);
     }
   }, [sequence, initialDirections]);
@@ -150,10 +152,9 @@ const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
       const newDirections = [...currentDirections];
       const randomIndex = Math.floor(Math.random() * newDirections.length);
       const possibleDirections = ["L", "R", "U", "D"];
-      newDirections[randomIndex] =
-        possibleDirections[
-          Math.floor(Math.random() * possibleDirections.length)
-        ];
+      newDirections[randomIndex] = possibleDirections[
+        Math.floor(Math.random() * possibleDirections.length)
+      ] as Direction;
 
       // Calculate new energy
       const newEnergy = calculateEnergy(sequence, newDirections);
@@ -227,10 +228,9 @@ const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
       const newDirections = [...currentDirections];
       const randomIndex = Math.floor(Math.random() * newDirections.length);
       const possibleDirections = ["L", "R", "U", "D"];
-      newDirections[randomIndex] =
-        possibleDirections[
-          Math.floor(Math.random() * possibleDirections.length)
-        ];
+      newDirections[randomIndex] = possibleDirections[
+        Math.floor(Math.random() * possibleDirections.length)
+      ] as Direction;
 
       // Calculate new energy
       const newEnergy = calculateEnergy(sequence, newDirections);
