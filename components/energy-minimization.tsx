@@ -62,14 +62,65 @@ const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
   const [bestDirections, setBestDirections] = useState<Direction[]>([]);
   const [bestEnergy, setBestEnergy] = useState<number>(0);
 
+  // Generate valid non-intersecting directions
+  const generateValidDirections = (seq: string): Direction[] => {
+    if (seq.length <= 1) return [];
+    
+    const directions: Direction[] = [];
+    const occupied = new Set<string>();
+    let currentPos = { x: 0, y: 0, z: 0 };
+    
+    // Always start with the first position
+    occupied.add(`${currentPos.x},${currentPos.y},${currentPos.z}`);
+    
+    // Generate directions that don't cause self-intersection
+    const possibleDirections: Direction[] = ["R", "U", "L", "D"];
+    
+    for (let i = 1; i < seq.length; i++) {
+      // Try directions in order of preference
+      let directionFound = false;
+      
+      for (const dir of possibleDirections) {
+        const nextPos = getNextPosition(currentPos, dir);
+        const posKey = `${nextPos.x},${nextPos.y},${nextPos.z}`;
+        
+        if (!occupied.has(posKey)) {
+          directions.push(dir);
+          occupied.add(posKey);
+          currentPos = nextPos;
+          directionFound = true;
+          break;
+        }
+      }
+      
+      // If no valid direction found, use a random one (fallback)
+      if (!directionFound) {
+        const randomDir = possibleDirections[Math.floor(Math.random() * possibleDirections.length)];
+        directions.push(randomDir);
+        const nextPos = getNextPosition(currentPos, randomDir);
+        currentPos = nextPos;
+        // Don't add to occupied set to allow some flexibility
+      }
+    }
+    
+    return directions;
+  };
+
+  const getNextPosition = (pos: Position, dir: Direction): Position => {
+    switch (dir) {
+      case 'L': return { x: pos.x - 1, y: pos.y, z: pos.z };
+      case 'R': return { x: pos.x + 1, y: pos.y, z: pos.z };
+      case 'U': return { x: pos.x, y: pos.y + 1, z: pos.z };
+      case 'D': return { x: pos.x, y: pos.y - 1, z: pos.z };
+      default: return pos;
+    }
+  };
+
   // Initialize directions if not provided
   useEffect(() => {
     if (!initialDirections || initialDirections.length === 0) {
-      const defaultDirections = Array(sequence.length - 1)
-        .fill("")
-        .map(
-          (_, i) => (i % 2 === 0 ? "R" : i % 4 === 1 ? "U" : "D") as Direction
-        );
+      // Generate non-intersecting default directions
+      const defaultDirections = generateValidDirections(sequence);
       setDirections(defaultDirections);
     }
   }, [sequence, initialDirections]);

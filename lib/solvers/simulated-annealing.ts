@@ -96,22 +96,53 @@ export class SimulatedAnnealingSolver extends BaseSolver {
   }
 
   private generateNeighbor(conformation: Conformation): Conformation {
-    // Create a neighbor by randomly changing one direction
-    const newDirections = [...conformation.directions];
-    const randomIndex = Math.floor(Math.random() * newDirections.length);
-    const possibleDirections: Direction[] = ["L", "R", "U", "D"];
+    // Try multiple attempts to generate a valid neighbor
+    const maxAttempts = 10;
     
-    // Choose a different direction
-    const currentDirection = newDirections[randomIndex];
-    const availableDirections = possibleDirections.filter(d => d !== currentDirection);
-    const newDirection = availableDirections[Math.floor(Math.random() * availableDirections.length)];
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const newDirections = [...conformation.directions];
+      const randomIndex = Math.floor(Math.random() * newDirections.length);
+      const possibleDirections: Direction[] = ["L", "R", "U", "D"];
+      
+      // Choose a different direction
+      const currentDirection = newDirections[randomIndex];
+      const availableDirections = possibleDirections.filter(d => d !== currentDirection);
+      const newDirection = availableDirections[Math.floor(Math.random() * availableDirections.length)];
+      
+      newDirections[randomIndex] = newDirection;
+      
+      const neighbor = EnergyCalculator.createConformation(this.sequence, newDirections);
+      
+      // If we found a valid neighbor, return it
+      if (neighbor.energy !== Number.POSITIVE_INFINITY || attempt === maxAttempts - 1) {
+        return neighbor;
+      }
+    }
     
-    newDirections[randomIndex] = newDirection;
-    
-    return EnergyCalculator.createConformation(this.sequence, newDirections);
+    // Fallback: return the original conformation
+    return conformation;
   }
 
   private acceptMove(currentEnergy: number, newEnergy: number, temperature: number): boolean {
+    // Handle infinite energy cases
+    if (currentEnergy === Number.POSITIVE_INFINITY && newEnergy === Number.POSITIVE_INFINITY) {
+      return false; // Don't accept if both are invalid
+    }
+    
+    if (currentEnergy === Number.POSITIVE_INFINITY && newEnergy !== Number.POSITIVE_INFINITY) {
+      return true; // Always accept valid solutions when current is invalid
+    }
+    
+    if (currentEnergy !== Number.POSITIVE_INFINITY && newEnergy === Number.POSITIVE_INFINITY) {
+      // Accept invalid solutions with very low probability when current is valid
+      if (temperature > 0) {
+        const acceptanceProbability = Math.exp(-10 / temperature); // Very low probability
+        return Math.random() < acceptanceProbability;
+      }
+      return false;
+    }
+    
+    // Both energies are finite - normal acceptance criterion
     // Always accept better solutions
     if (newEnergy < currentEnergy) {
       return true;
