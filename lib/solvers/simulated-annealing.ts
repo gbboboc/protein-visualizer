@@ -158,10 +158,14 @@ export class SimulatedAnnealingSolver extends BaseSolver {
   }
 
   private updateTemperature(currentTemperature: number, iteration: number): number {
-    // Exponential cooling schedule for better landscape exploration
-    // This creates a more gradual cooling that allows proper funnel navigation
-    const coolingFactor = Math.pow(this.finalTemperature / this.initialTemperature, 1 / this.maxIterations);
-    return this.initialTemperature * Math.pow(coolingFactor, iteration);
+    // Exponential cooling schedule (more appropriate for simulated annealing)
+    // T(t) = T_initial * (T_final/T_initial)^(t/t_max)
+    // This provides slower cooling that allows proper exploration
+    const coolingFactor = Math.pow(this.finalTemperature / this.initialTemperature, iteration / this.maxIterations);
+    const newTemperature = this.initialTemperature * coolingFactor;
+    
+    // Ensure temperature doesn't go below final temperature
+    return Math.max(newTemperature, this.finalTemperature);
   }
 
   /**

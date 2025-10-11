@@ -88,7 +88,7 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
         initialTemperature:
           algorithmType === "simulated-annealing" ? temperature[0] : undefined,
         finalTemperature:
-          algorithmType === "simulated-annealing" ? 0.1 : undefined,
+          algorithmType === "simulated-annealing" ? 0.01 : undefined,
         coolingRate: algorithmType === "simulated-annealing" ? 0.95 : undefined,
       };
 

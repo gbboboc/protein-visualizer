@@ -89,7 +89,7 @@ const ProteinSolver: React.FC<ProteinSolverProps> = ({
           sequence,
           maxIterations: iterations[0],
           initialTemperature: temperature[0],
-          finalTemperature: 0.1,
+          finalTemperature: 0.01,
           coolingRate: 0.95,
           initialDirections,
         });

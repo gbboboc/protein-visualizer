@@ -66,8 +66,8 @@ export class ProteinSolverService {
         this.currentSolver = new SimulatedAnnealingSolver({
           sequence: config.sequence,
           maxIterations: config.maxIterations,
-          initialTemperature: config.initialTemperature || 10,
-          finalTemperature: config.finalTemperature || 0.1,
+          initialTemperature: config.initialTemperature || 5.0,
+          finalTemperature: config.finalTemperature || 0.01,
           coolingRate: config.coolingRate || 0.95,
           initialDirections: config.initialDirections,
           onProgress: this.handleProgress.bind(this)
