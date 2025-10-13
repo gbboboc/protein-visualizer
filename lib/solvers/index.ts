@@ -6,15 +6,17 @@ export type {
   SolverResult, 
   SolverParameters,
   MonteCarloParameters,
-  SimulatedAnnealingParameters 
+  SimulatedAnnealingParameters,
+  GeneticAlgorithmParameters 
 } from "./types";
 
 export { EnergyCalculator } from "./energy-calculator";
 export { MonteCarloSolver } from "./monte-carlo";
 export { SimulatedAnnealingSolver } from "./simulated-annealing";
+export { GeneticAlgorithmSolver } from "./genetic-algorithm";
 
 // Convenience factory functions
-import type { MonteCarloParameters, SimulatedAnnealingParameters } from "./types";
+import type { MonteCarloParameters, SimulatedAnnealingParameters, GeneticAlgorithmParameters } from "./types";
 
 export function createMonteCarloSolver(parameters: MonteCarloParameters) {
   const { MonteCarloSolver } = require("./monte-carlo");
@@ -24,4 +26,9 @@ export function createMonteCarloSolver(parameters: MonteCarloParameters) {
 export function createSimulatedAnnealingSolver(parameters: SimulatedAnnealingParameters) {
   const { SimulatedAnnealingSolver } = require("./simulated-annealing");
   return new SimulatedAnnealingSolver(parameters);
+}
+
+export function createGeneticAlgorithmSolver(parameters: GeneticAlgorithmParameters) {
+  const { GeneticAlgorithmSolver } = require("./genetic-algorithm");
+  return new GeneticAlgorithmSolver(parameters);
 }

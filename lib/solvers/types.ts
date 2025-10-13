@@ -37,6 +37,14 @@ export interface SimulatedAnnealingParameters extends SolverParameters {
   coolingRate: number;
 }
 
+export interface GeneticAlgorithmParameters extends SolverParameters {
+  populationSize: number;
+  crossoverRate: number; // 0..1
+  mutationRate: number; // 0..1 per gene
+  eliteCount: number; // number of elites to keep each generation
+  tournamentSize: number; // for selection
+}
+
 export abstract class BaseSolver {
   protected sequence: string;
   protected maxIterations: number;
