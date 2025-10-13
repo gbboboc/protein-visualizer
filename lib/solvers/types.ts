@@ -62,6 +62,16 @@ export interface EvolutionaryProgrammingParameters extends SolverParameters {
   eliteCount?: number; // optional elitism
 }
 
+export interface GeneticProgrammingParameters extends SolverParameters {
+  populationSize: number;
+  maxTreeDepth: number;
+  crossoverRate: number; // 0..1
+  mutationRate: number; // 0..1
+  eliteCount: number;
+  tournamentSize: number;
+  rolloutCount?: number; // number of rollouts to construct directions per program
+}
+
 export abstract class BaseSolver {
   protected sequence: string;
   protected maxIterations: number;

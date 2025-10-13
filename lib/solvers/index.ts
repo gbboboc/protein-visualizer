@@ -18,9 +18,10 @@ export { SimulatedAnnealingSolver } from "./simulated-annealing";
 export { GeneticAlgorithmSolver } from "./genetic-algorithm";
 export { EvolutionStrategiesSolver } from "./evolution-strategies";
 export { EvolutionaryProgrammingSolver } from "./evolutionary-programming";
+export { GeneticProgrammingSolver } from "./genetic-programming";
 
 // Convenience factory functions
-import type { MonteCarloParameters, SimulatedAnnealingParameters, GeneticAlgorithmParameters, EvolutionStrategiesParameters, EvolutionaryProgrammingParameters } from "./types";
+import type { MonteCarloParameters, SimulatedAnnealingParameters, GeneticAlgorithmParameters, EvolutionStrategiesParameters, EvolutionaryProgrammingParameters, GeneticProgrammingParameters } from "./types";
 
 export function createMonteCarloSolver(parameters: MonteCarloParameters) {
   const { MonteCarloSolver } = require("./monte-carlo");
@@ -45,4 +46,9 @@ export function createEvolutionStrategiesSolver(parameters: EvolutionStrategiesP
 export function createEvolutionaryProgrammingSolver(parameters: EvolutionaryProgrammingParameters) {
   const { EvolutionaryProgrammingSolver } = require("./evolutionary-programming");
   return new EvolutionaryProgrammingSolver(parameters);
+}
+
+export function createGeneticProgrammingSolver(parameters: GeneticProgrammingParameters) {
+  const { GeneticProgrammingSolver } = require("./genetic-programming");
+  return new GeneticProgrammingSolver(parameters);
 }

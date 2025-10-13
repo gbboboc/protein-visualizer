@@ -9,6 +9,7 @@ import {
   GeneticAlgorithmSolver,
   EvolutionStrategiesSolver,
   EvolutionaryProgrammingSolver,
+  GeneticProgrammingSolver,
   EnergyCalculator,
   type SolverResult,
   type Conformation
@@ -45,7 +46,7 @@ export interface SolverEventCallbacks {
 }
 
 export class ProteinSolverService {
-  private currentSolver: MonteCarloSolver | SimulatedAnnealingSolver | GeneticAlgorithmSolver | EvolutionStrategiesSolver | EvolutionaryProgrammingSolver | null = null;
+  private currentSolver: MonteCarloSolver | SimulatedAnnealingSolver | GeneticAlgorithmSolver | EvolutionStrategiesSolver | EvolutionaryProgrammingSolver | GeneticProgrammingSolver | null = null;
   private isRunning = false;
   private callbacks: SolverEventCallbacks = {};
 
@@ -104,6 +105,20 @@ export class ProteinSolverService {
           mutationRate: config.mutationRate ?? 0.1,
           tournamentSize: config.tournamentSize ?? 3,
           eliteCount: 2,
+          initialDirections: config.initialDirections,
+          onProgress: this.handleProgress.bind(this)
+        });
+      } else if (config.algorithm === 'gp') {
+        this.currentSolver = new GeneticProgrammingSolver({
+          sequence: config.sequence,
+          maxIterations: config.maxIterations,
+          populationSize: config.populationSize ?? 60,
+          maxTreeDepth: 4,
+          crossoverRate: 0.9,
+          mutationRate: 0.2,
+          eliteCount: 2,
+          tournamentSize: 3,
+          rolloutCount: 1,
           initialDirections: config.initialDirections,
           onProgress: this.handleProgress.bind(this)
         });
