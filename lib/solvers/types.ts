@@ -45,6 +45,23 @@ export interface GeneticAlgorithmParameters extends SolverParameters {
   tournamentSize: number; // for selection
 }
 
+export interface EvolutionStrategiesParameters extends SolverParameters {
+  mu: number; // parents
+  lambda: number; // offspring
+  initialMutationRate: number; // per-gene
+  mutationDecay?: number; // multiply when improving (<1)
+  mutationBoost?: number; // multiply when stagnating (>1)
+  stagnationWindow?: number;
+  plusSelection?: boolean; // (mu+lambda) vs (mu,lambda)
+}
+
+export interface EvolutionaryProgrammingParameters extends SolverParameters {
+  populationSize: number;
+  mutationRate: number; // per-gene
+  tournamentSize: number; // for EP selection
+  eliteCount?: number; // optional elitism
+}
+
 export abstract class BaseSolver {
   protected sequence: string;
   protected maxIterations: number;

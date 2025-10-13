@@ -7,6 +7,8 @@ import {
   MonteCarloSolver, 
   SimulatedAnnealingSolver,
   GeneticAlgorithmSolver,
+  EvolutionStrategiesSolver,
+  EvolutionaryProgrammingSolver,
   EnergyCalculator,
   type SolverResult,
   type Conformation
@@ -43,7 +45,7 @@ export interface SolverEventCallbacks {
 }
 
 export class ProteinSolverService {
-  private currentSolver: MonteCarloSolver | SimulatedAnnealingSolver | GeneticAlgorithmSolver | null = null;
+  private currentSolver: MonteCarloSolver | SimulatedAnnealingSolver | GeneticAlgorithmSolver | EvolutionStrategiesSolver | EvolutionaryProgrammingSolver | null = null;
   private isRunning = false;
   private callbacks: SolverEventCallbacks = {};
 
@@ -77,6 +79,31 @@ export class ProteinSolverService {
           mutationRate: config.mutationRate ?? 0.1,
           eliteCount: config.eliteCount ?? 3,
           tournamentSize: config.tournamentSize ?? 3,
+          initialDirections: config.initialDirections,
+          onProgress: this.handleProgress.bind(this)
+        });
+      } else if (config.algorithm === 'es') {
+        this.currentSolver = new EvolutionStrategiesSolver({
+          sequence: config.sequence,
+          maxIterations: config.maxIterations,
+          mu: 25,
+          lambda: 150,
+          initialMutationRate: 0.1,
+          mutationDecay: 0.97,
+          mutationBoost: 1.1,
+          stagnationWindow: 10,
+          plusSelection: true,
+          initialDirections: config.initialDirections,
+          onProgress: this.handleProgress.bind(this)
+        });
+      } else if (config.algorithm === 'ep') {
+        this.currentSolver = new EvolutionaryProgrammingSolver({
+          sequence: config.sequence,
+          maxIterations: config.maxIterations,
+          populationSize: config.populationSize ?? 120,
+          mutationRate: config.mutationRate ?? 0.1,
+          tournamentSize: config.tournamentSize ?? 3,
+          eliteCount: 2,
           initialDirections: config.initialDirections,
           onProgress: this.handleProgress.bind(this)
         });

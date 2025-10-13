@@ -63,7 +63,7 @@ export async function GET() {
       'POST /api/solve': 'Solve protein folding problem',
       'GET /api/solve/validate': 'Validate sequence and directions'
     },
-      algorithms: ['monte-carlo', 'simulated-annealing', 'ga']
+      algorithms: ['monte-carlo', 'simulated-annealing', 'ga', 'es', 'ep']
   });
 }
 
