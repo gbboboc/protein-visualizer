@@ -6,6 +6,10 @@
 import { 
   MonteCarloSolver, 
   SimulatedAnnealingSolver,
+  GeneticAlgorithmSolver,
+  EvolutionStrategiesSolver,
+  EvolutionaryProgrammingSolver,
+  GeneticProgrammingSolver,
   EnergyCalculator,
   type SolverResult,
   type Conformation
@@ -13,11 +17,16 @@ import {
 import type { Direction } from "../types";
 
 export interface SolverConfig {
-  algorithm: 'monte-carlo' | 'simulated-annealing';
+  algorithm: 'monte-carlo' | 'simulated-annealing' | 'ga';
   sequence: string;
   initialDirections?: Direction[];
   maxIterations: number;
   populationSize?: number; // For Monte Carlo
+  // GA-specific
+  crossoverRate?: number;
+  mutationRate?: number;
+  eliteCount?: number;
+  tournamentSize?: number;
   initialTemperature?: number; // For Simulated Annealing
   finalTemperature?: number;
   coolingRate?: number;
@@ -37,7 +46,7 @@ export interface SolverEventCallbacks {
 }
 
 export class ProteinSolverService {
-  private currentSolver: MonteCarloSolver | SimulatedAnnealingSolver | null = null;
+  private currentSolver: MonteCarloSolver | SimulatedAnnealingSolver | GeneticAlgorithmSolver | EvolutionStrategiesSolver | EvolutionaryProgrammingSolver | GeneticProgrammingSolver | null = null;
   private isRunning = false;
   private callbacks: SolverEventCallbacks = {};
 
@@ -59,6 +68,57 @@ export class ProteinSolverService {
           sequence: config.sequence,
           maxIterations: config.maxIterations,
           populationSize: config.populationSize || 50,
+          initialDirections: config.initialDirections,
+          onProgress: this.handleProgress.bind(this)
+        });
+      } else if (config.algorithm === 'ga') {
+        this.currentSolver = new GeneticAlgorithmSolver({
+          sequence: config.sequence,
+          maxIterations: config.maxIterations,
+          populationSize: config.populationSize ?? 120,
+          crossoverRate: config.crossoverRate ?? 0.9,
+          mutationRate: config.mutationRate ?? 0.1,
+          eliteCount: config.eliteCount ?? 3,
+          tournamentSize: config.tournamentSize ?? 3,
+          initialDirections: config.initialDirections,
+          onProgress: this.handleProgress.bind(this)
+        });
+      } else if (config.algorithm === 'es') {
+        this.currentSolver = new EvolutionStrategiesSolver({
+          sequence: config.sequence,
+          maxIterations: config.maxIterations,
+          mu: 25,
+          lambda: 150,
+          initialMutationRate: 0.1,
+          mutationDecay: 0.97,
+          mutationBoost: 1.1,
+          stagnationWindow: 10,
+          plusSelection: true,
+          initialDirections: config.initialDirections,
+          onProgress: this.handleProgress.bind(this)
+        });
+      } else if (config.algorithm === 'ep') {
+        this.currentSolver = new EvolutionaryProgrammingSolver({
+          sequence: config.sequence,
+          maxIterations: config.maxIterations,
+          populationSize: config.populationSize ?? 120,
+          mutationRate: config.mutationRate ?? 0.1,
+          tournamentSize: config.tournamentSize ?? 3,
+          eliteCount: 2,
+          initialDirections: config.initialDirections,
+          onProgress: this.handleProgress.bind(this)
+        });
+      } else if (config.algorithm === 'gp') {
+        this.currentSolver = new GeneticProgrammingSolver({
+          sequence: config.sequence,
+          maxIterations: config.maxIterations,
+          populationSize: config.populationSize ?? 60,
+          maxTreeDepth: 4,
+          crossoverRate: 0.9,
+          mutationRate: 0.2,
+          eliteCount: 2,
+          tournamentSize: 3,
+          rolloutCount: 1,
           initialDirections: config.initialDirections,
           onProgress: this.handleProgress.bind(this)
         });

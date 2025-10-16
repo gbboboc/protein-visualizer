@@ -37,6 +37,41 @@ export interface SimulatedAnnealingParameters extends SolverParameters {
   coolingRate: number;
 }
 
+export interface GeneticAlgorithmParameters extends SolverParameters {
+  populationSize: number;
+  crossoverRate: number; // 0..1
+  mutationRate: number; // 0..1 per gene
+  eliteCount: number; // number of elites to keep each generation
+  tournamentSize: number; // for selection
+}
+
+export interface EvolutionStrategiesParameters extends SolverParameters {
+  mu: number; // parents
+  lambda: number; // offspring
+  initialMutationRate: number; // per-gene
+  mutationDecay?: number; // multiply when improving (<1)
+  mutationBoost?: number; // multiply when stagnating (>1)
+  stagnationWindow?: number;
+  plusSelection?: boolean; // (mu+lambda) vs (mu,lambda)
+}
+
+export interface EvolutionaryProgrammingParameters extends SolverParameters {
+  populationSize: number;
+  mutationRate: number; // per-gene
+  tournamentSize: number; // for EP selection
+  eliteCount?: number; // optional elitism
+}
+
+export interface GeneticProgrammingParameters extends SolverParameters {
+  populationSize: number;
+  maxTreeDepth: number;
+  crossoverRate: number; // 0..1
+  mutationRate: number; // 0..1
+  eliteCount: number;
+  tournamentSize: number;
+  rolloutCount?: number; // number of rollouts to construct directions per program
+}
+
 export abstract class BaseSolver {
   protected sequence: string;
   protected maxIterations: number;

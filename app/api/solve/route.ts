@@ -57,13 +57,13 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  return NextResponse.json({
+    return NextResponse.json({
     message: 'Protein Solver API',
     endpoints: {
       'POST /api/solve': 'Solve protein folding problem',
       'GET /api/solve/validate': 'Validate sequence and directions'
     },
-    algorithms: ['monte-carlo', 'simulated-annealing']
+      algorithms: ['monte-carlo', 'simulated-annealing', 'ga', 'es', 'ep', 'gp']
   });
 }
 
