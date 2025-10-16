@@ -16,6 +16,7 @@ import {
   JobStatusResponse
 } from '../types/job-types';
 import Job from '../models/Job';
+import User from '../models/User';
 import connectDB from '../mongodb';
 
 class JobQueueService {
@@ -294,12 +295,17 @@ class JobQueueService {
     this.queue.on('completed', async (job, result) => {
       console.log(`Job ${job.id} completed`);
       try {
-        await Job.findByIdAndUpdate(job.data.jobId, {
+        const updatedJob = await Job.findByIdAndUpdate(job.data.jobId, {
           status: JobStatus.COMPLETED,
           progress: 100,
           result: result,
           completedAt: new Date()
         });
+
+        // Update user job statistics
+        if (updatedJob) {
+          await this.updateUserJobStats(updatedJob.userId.toString(), 'completed');
+        }
       } catch (error) {
         console.error('Failed to update job on completion:', error);
       }
@@ -309,11 +315,16 @@ class JobQueueService {
     this.queue.on('failed', async (job, error) => {
       console.log(`Job ${job.id} failed:`, error.message);
       try {
-        await Job.findByIdAndUpdate(job.data.jobId, {
+        const updatedJob = await Job.findByIdAndUpdate(job.data.jobId, {
           status: JobStatus.FAILED,
           error: error.message,
           completedAt: new Date()
         });
+
+        // Update user job statistics
+        if (updatedJob) {
+          await this.updateUserJobStats(updatedJob.userId.toString(), 'failed');
+        }
       } catch (updateError) {
         console.error('Failed to update job on failure:', updateError);
       }
@@ -398,6 +409,55 @@ class JobQueueService {
 
     } catch (error) {
       console.error('Failed to cleanup old jobs:', error);
+    }
+  }
+
+  /**
+   * Update user job statistics
+   */
+  private async updateUserJobStats(userId: string, status: 'completed' | 'failed'): Promise<void> {
+    try {
+      const updateFields: any = {
+        $inc: { 'jobStats.totalJobs': 1 },
+        $set: { 'jobStats.lastJobAt': new Date() }
+      };
+
+      if (status === 'completed') {
+        updateFields.$inc['jobStats.completedJobs'] = 1;
+      } else if (status === 'failed') {
+        updateFields.$inc['jobStats.failedJobs'] = 1;
+      }
+
+      await User.findByIdAndUpdate(userId, updateFields);
+    } catch (error) {
+      console.error('Failed to update user job statistics:', error);
+    }
+  }
+
+  /**
+   * Get user job statistics
+   */
+  async getUserJobStats(userId: string): Promise<{
+    totalJobs: number;
+    completedJobs: number;
+    failedJobs: number;
+    totalRuntime: number;
+    lastJobAt?: Date;
+  } | null> {
+    try {
+      await this.initialize();
+
+      const user = await User.findById(userId).select('jobStats');
+      return user?.jobStats || {
+        totalJobs: 0,
+        completedJobs: 0,
+        failedJobs: 0,
+        totalRuntime: 0
+      };
+
+    } catch (error) {
+      console.error('Failed to get user job statistics:', error);
+      return null;
     }
   }
 

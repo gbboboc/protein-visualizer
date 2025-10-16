@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth.config";
 import { jobQueueService } from "@/lib/services/job-queue-service";
 import { JobSubmissionResponse } from "@/lib/types/job-types";
+import { jobSubmissionRateLimiter, rosettaJobRateLimiter, getClientIdentifier } from "@/lib/middleware/rate-limiter";
 import connectDB from "@/lib/mongodb";
 
 // GET /api/jobs - Get user's jobs
@@ -38,6 +39,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Rate limiting check
+    const identifier = getClientIdentifier(request);
+    const rateLimitResult = jobSubmissionRateLimiter.check(identifier);
+    
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { 
+          error: "Too many job submissions. Please wait before submitting another job.",
+          retryAfter: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)
+        },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': '10',
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+            'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString()
+          }
+        }
+      );
+    }
+
     const body = await request.json();
     const { algorithm, sequence, parameters } = body;
 
@@ -47,6 +70,29 @@ export async function POST(request: NextRequest) {
         { error: "Missing required fields: algorithm, sequence" },
         { status: 400 }
       );
+    }
+
+    // Additional rate limiting for Rosetta jobs (more restrictive)
+    if (algorithm === 'rosetta') {
+      const rosettaRateLimitResult = rosettaJobRateLimiter.check(identifier);
+      
+      if (!rosettaRateLimitResult.allowed) {
+        return NextResponse.json(
+          { 
+            error: "Rosetta jobs are computationally expensive. You can submit up to 3 per hour.",
+            retryAfter: Math.ceil((rosettaRateLimitResult.resetTime - Date.now()) / 1000)
+          },
+          { 
+            status: 429,
+            headers: {
+              'X-RateLimit-Limit': '3',
+              'X-RateLimit-Remaining': rosettaRateLimitResult.remaining.toString(),
+              'X-RateLimit-Reset': rosettaRateLimitResult.resetTime.toString(),
+              'Retry-After': Math.ceil((rosettaRateLimitResult.resetTime - Date.now()) / 1000).toString()
+            }
+          }
+        );
+      }
     }
 
     // Validate sequence (basic HP model validation)
@@ -82,11 +128,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       jobId: result.jobId,
       estimatedCompletion: result.estimatedCompletion
     });
+
+    // Add rate limit headers
+    response.headers.set('X-RateLimit-Limit', '10');
+    response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+    response.headers.set('X-RateLimit-Reset', rateLimitResult.resetTime.toString());
+
+    return response;
 
   } catch (error) {
     console.error("Error submitting job:", error);
