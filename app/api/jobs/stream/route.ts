@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth.config";
 import Job from "@/lib/models/Job";
 import connectDB from "@/lib/mongodb";
+import mongoose from "mongoose";
 
 // Server-Sent Events endpoint for real-time job progress updates
 export async function GET(request: NextRequest) {
@@ -35,11 +36,14 @@ export async function GET(request: NextRequest) {
         
         const setupChangeStream = async () => {
           try {
+            // Convert session.user.id (string) to ObjectId for proper comparison
+            const userIdObjectId = new mongoose.Types.ObjectId(session.user.id);
+            
             // Watch for changes to jobs belonging to this user
             changeStream = Job.watch([
               {
                 $match: {
-                  'fullDocument.userId': session.user.id,
+                  'fullDocument.userId': userIdObjectId,
                   'operationType': { $in: ['update', 'insert', 'replace'] }
                 }
               }
