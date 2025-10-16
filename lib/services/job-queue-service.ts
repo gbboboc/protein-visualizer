@@ -261,7 +261,10 @@ class JobQueueService {
         updateData.completedAt = new Date();
       }
 
+      // Update the job in database - this will trigger SSE updates via MongoDB change stream
       await Job.findByIdAndUpdate(jobId, updateData);
+
+      // The SSE endpoint will automatically detect this change and stream it to connected clients
 
     } catch (error) {
       console.error('Failed to update job progress:', error);
