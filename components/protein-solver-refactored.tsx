@@ -13,8 +13,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, OrthographicCamera } from "@react-three/drei";
+import { OrbitControls, OrthographicCamera, Html } from "@react-three/drei";
 import ProteinModel from "./protein-model";
 import {
   LineChart,
@@ -562,7 +563,22 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
           </Card>
 
           {/* Energy Windows - Smaller */}
-          {currentResult && (
+          {isRunning && !currentResult ? (
+            <div className="grid grid-cols-2 gap-2">
+              <Card>
+                <CardContent className="pt-3 pb-3">
+                  <Skeleton className="h-6 w-24 mx-auto" />
+                  <Skeleton className="h-3 w-20 mx-auto mt-2" />
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-3 pb-3">
+                  <Skeleton className="h-6 w-24 mx-auto" />
+                  <Skeleton className="h-3 w-20 mx-auto mt-2" />
+                </CardContent>
+              </Card>
+            </div>
+          ) : currentResult ? (
             <div className="grid grid-cols-2 gap-2">
               <Card>
                 <CardContent className="pt-3 pb-3">
@@ -587,11 +603,51 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
                 </CardContent>
               </Card>
             </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <Card>
+                <CardContent className="pt-3 pb-3">
+                  <div className="text-center text-gray-500">
+                    <div className="text-sm">No results yet</div>
+                    <div className="text-xs mt-1">Run solver to begin</div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-3 pb-3">
+                  <div className="text-center text-gray-500">
+                    <div className="text-sm">No results yet</div>
+                    <div className="text-xs mt-1">Run solver to begin</div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
         </div>
 
         {/* Right Column: Visualization + Energy Evolution */}
-        {currentResult && bestConformation && (
+        {isRunning && !currentResult ? (
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Visualization</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-48 bg-gray-50 rounded-md overflow-hidden flex items-center justify-center">
+                  <Skeleton className="h-40 w-full" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Energy Evolution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-48 w-full" />
+              </CardContent>
+            </Card>
+          </div>
+        ) : currentResult ? (
           <div className="space-y-4">
             {/* Primary Visualization */}
             <Card>
@@ -617,11 +673,24 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
                       screenSpacePanning
                       target={[0, 0, 0]}
                     />
-                    <ProteinModel
-                      sequence={bestConformation.sequence}
-                      directions={bestConformation.directions}
-                      type="3d"
-                    />
+                    {bestConformation ? (
+                      <ProteinModel
+                        sequence={bestConformation.sequence}
+                        directions={bestConformation.directions}
+                        type="3d"
+                      />
+                    ) : (
+                      <Html center>
+                        <div className="text-center text-gray-500">
+                          <div className="text-sm">
+                            No visualization available
+                          </div>
+                          <div className="text-xs mt-1">
+                            Run solver to generate a preview
+                          </div>
+                        </div>
+                      </Html>
+                    )}
                   </Canvas>
                 </div>
               </CardContent>
@@ -634,22 +703,67 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
               </CardHeader>
               <CardContent>
                 <div className="h-48">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={currentResult.energyHistory}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="iteration" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="energy"
-                        stroke="#8884d8"
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  {currentResult.energyHistory &&
+                  currentResult.energyHistory.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={currentResult.energyHistory}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="iteration" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="energy"
+                          stroke="#8884d8"
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center text-gray-500">
+                        <div className="text-sm">No energy data available</div>
+                        <div className="text-xs mt-1">
+                          Run solver to generate energy evolution
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Visualization</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-48 bg-gray-50 rounded-md overflow-hidden flex items-center justify-center">
+                  <div className="text-center text-gray-500">
+                    <div className="text-sm">No visualization available</div>
+                    <div className="text-xs mt-1">
+                      Run solver to generate a preview
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Energy Evolution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-48 bg-gray-50 rounded-md overflow-hidden flex items-center justify-center">
+                  <div className="text-center text-gray-500">
+                    <div className="text-sm">No energy data available</div>
+                    <div className="text-xs mt-1">
+                      Run solver to generate energy evolution
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

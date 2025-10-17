@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +44,7 @@ export function SavedContentDialog({
 }: SavedContentDialogProps) {
   const { data: session } = useSession();
   const { toast } = useToast();
+  const [open, setOpen] = useState(false);
   const [savedProteins, setSavedProteins] = useState<ProteinSequence[]>([]);
   const [savedComparisons, setSavedComparisons] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -287,13 +289,13 @@ export function SavedContentDialog({
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button className="w-full">
           <Database className="w-4 h-4 mr-2" /> Browse Saved Content
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl overflow-hidden">
         <DialogHeader>
           <DialogTitle>Saved Content</DialogTitle>
         </DialogHeader>
@@ -303,7 +305,7 @@ export function SavedContentDialog({
             <TabsTrigger value="comparisons">Saved Comparisons</TabsTrigger>
           </TabsList>
           <TabsContent value="proteins" className="mt-4">
-            <div className="max-h-[60vh] overflow-y-auto">
+            <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden">
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
@@ -316,11 +318,31 @@ export function SavedContentDialog({
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr>
-                      <td colSpan={5} className="border p-4 text-center">
-                        Loading...
-                      </td>
-                    </tr>
+                    <>
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <tr key={i}>
+                          <td className="border p-2">
+                            <Skeleton className="h-4 w-full max-w-[8rem]" />
+                          </td>
+                          <td className="border p-2">
+                            <Skeleton className="h-4 w-full max-w-[16rem]" />
+                          </td>
+                          <td className="border p-2">
+                            <Skeleton className="h-4 w-full max-w-[10rem]" />
+                          </td>
+                          <td className="border p-2">
+                            <Skeleton className="h-4 w-full max-w-[3rem]" />
+                          </td>
+                          <td className="border p-2 overflow-hidden">
+                            <div className="flex gap-2">
+                              <Skeleton className="h-8 w-16" />
+                              <Skeleton className="h-8 w-20" />
+                              <Skeleton className="h-8 w-8" />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </>
                   ) : savedProteins.length > 0 ? (
                     savedProteins.map((protein, index) => (
                       <tr
@@ -352,25 +374,38 @@ export function SavedContentDialog({
                           {protein.sequence.length}
                         </td>
                         <td className="border p-2">
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 items-center flex-wrap">
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => onLoadProtein(protein)}
+                              className="shrink-0"
+                              onClick={() => {
+                                onLoadProtein(protein);
+                                toast({
+                                  title: "Sequence Loaded",
+                                  description: `${
+                                    protein.name || "Protein"
+                                  } sequence loaded into the editor.`,
+                                });
+                                setOpen(false);
+                              }}
                             >
                               Load
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
+                              className="shrink-0"
                               onClick={() => onAddToComparison(protein)}
                             >
                               Compare
                             </Button>
-                            {session?.user?.id === protein.userId && (
+                            {(session?.user?.id === protein.userId ||
+                              !protein.userId) && (
                               <Button
                                 size="sm"
                                 variant="destructive"
+                                className="shrink-0"
                                 onClick={() => handleDeleteClick(protein)}
                                 disabled={
                                   deletingProteinId ===
@@ -404,7 +439,7 @@ export function SavedContentDialog({
             </div>
           </TabsContent>
           <TabsContent value="comparisons" className="mt-4">
-            <div className="max-h-[60vh] overflow-y-auto">
+            <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden">
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
@@ -416,11 +451,24 @@ export function SavedContentDialog({
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr>
-                      <td colSpan={4} className="border p-4 text-center">
-                        Loading...
-                      </td>
-                    </tr>
+                    <>
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <tr key={i}>
+                          <td className="border p-2">
+                            <Skeleton className="h-4 w-full max-w-[12rem]" />
+                          </td>
+                          <td className="border p-2">
+                            <Skeleton className="h-4 w-full max-w-[2rem]" />
+                          </td>
+                          <td className="border p-2">
+                            <Skeleton className="h-4 w-full max-w-[6rem]" />
+                          </td>
+                          <td className="border p-2">
+                            <Skeleton className="h-8 w-20" />
+                          </td>
+                        </tr>
+                      ))}
+                    </>
                   ) : savedComparisons.length > 0 ? (
                     savedComparisons.map((comparison) => (
                       <tr key={comparison._id}>
