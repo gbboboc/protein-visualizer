@@ -111,15 +111,14 @@ export function SavedContentDialog({
   };
 
   useEffect(() => {
-    fetchSavedContent();
-  }, [toast, session?.user?.id]);
-
-  // Add effect to refresh when a comparison is saved
-  useEffect(() => {
-    if (onComparisonSaved) {
+    // Fetch only when dialog is opened to avoid background flicker/refetches
+    if (open) {
       fetchSavedContent();
     }
-  }, [onComparisonSaved]);
+  }, [open, session?.user?.id]);
+
+  // Note: onComparisonSaved is a callback from this dialog to parent, not a signal to refetch here.
+  // Removing the effect that watched onComparisonSaved prevents unnecessary refetch/flicker.
 
   const handleDeleteClick = (protein: ProteinSequence) => {
     setProteinToDelete(protein);
@@ -346,7 +345,11 @@ export function SavedContentDialog({
                   ) : savedProteins.length > 0 ? (
                     savedProteins.map((protein, index) => (
                       <tr
-                        key={index}
+                        key={
+                          (protein as any)._id?.toString?.() ||
+                          (protein as any).id?.toString?.() ||
+                          `${index}`
+                        }
                         className={index % 2 === 0 ? "bg-gray-50" : ""}
                       >
                         <td className="border p-2">{protein.name}</td>
