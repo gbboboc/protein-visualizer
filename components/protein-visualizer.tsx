@@ -18,6 +18,7 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls, OrthographicCamera } from "@react-three/drei";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -83,6 +84,8 @@ const ProteinVisualizer = () => {
     ProteinSequence[]
   >([]);
   const [isCanvasFullscreen, setIsCanvasFullscreen] = useState(false);
+  const [canvasReady, setCanvasReady] = useState(false);
+  const [fullscreenCanvasReady, setFullscreenCanvasReady] = useState(false);
   const { toast } = useToast();
   const { data: session } = useSession();
   const [comparisonSaved, setComparisonSaved] = useState(false);
@@ -607,6 +610,11 @@ const ProteinVisualizer = () => {
                 {proteinData ? (
                   <div className="grid grid-cols-2 gap-4">
                     <div className="relative w-full h-[500px] bg-gray-50 rounded-lg group">
+                      {!canvasReady && (
+                        <div className="absolute inset-0 z-10 flex items-center justify-center p-4">
+                          <Skeleton className="h-full w-full" />
+                        </div>
+                      )}
                       <button
                         onClick={() => setIsCanvasFullscreen(true)}
                         className="absolute top-2 right-2 z-10 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
@@ -625,7 +633,10 @@ const ProteinVisualizer = () => {
                           <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
                         </svg>
                       </button>
-                      <Canvas style={{ width: "100%", height: "100%" }}>
+                      <Canvas
+                        style={{ width: "100%", height: "100%" }}
+                        onCreated={() => setCanvasReady(true)}
+                      >
                         <OrthographicCamera
                           makeDefault
                           position={
@@ -678,8 +689,16 @@ const ProteinVisualizer = () => {
                   <DialogHeader>
                     <DialogTitle>Protein Visualization</DialogTitle>
                   </DialogHeader>
-                  <div className="w-full h-full bg-gray-50 rounded-lg">
-                    <Canvas style={{ width: "100%", height: "100%" }}>
+                  <div className="w-full h-full bg-gray-50 rounded-lg relative">
+                    {!fullscreenCanvasReady && (
+                      <div className="absolute inset-0 z-10 flex items-center justify-center p-4">
+                        <Skeleton className="h-full w-full" />
+                      </div>
+                    )}
+                    <Canvas
+                      style={{ width: "100%", height: "100%" }}
+                      onCreated={() => setFullscreenCanvasReady(true)}
+                    >
                       <OrthographicCamera
                         makeDefault
                         position={

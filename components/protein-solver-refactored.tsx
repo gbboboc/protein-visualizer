@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, OrthographicCamera } from "@react-three/drei";
 import ProteinModel from "./protein-model";
@@ -260,98 +261,141 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
           </Card>
 
           {/* Energy Windows - Smaller */}
-          {currentResult && (
+          {isRunning && !currentResult ? (
             <div className="grid grid-cols-2 gap-2">
               <Card>
                 <CardContent className="pt-3 pb-3">
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-blue-600">
-                      {progress?.currentEnergy ||
-                        currentResult.bestConformation.energy}
-                    </div>
-                    <div className="text-xs text-gray-600">Current Energy</div>
-                  </div>
+                  <Skeleton className="h-6 w-24 mx-auto" />
+                  <Skeleton className="h-3 w-20 mx-auto mt-2" />
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-3 pb-3">
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-green-600">
-                      {progress?.bestEnergy ||
-                        currentResult.bestConformation.energy}
-                    </div>
-                    <div className="text-xs text-gray-600">Best Energy</div>
-                  </div>
+                  <Skeleton className="h-6 w-24 mx-auto" />
+                  <Skeleton className="h-3 w-20 mx-auto mt-2" />
                 </CardContent>
               </Card>
             </div>
+          ) : (
+            currentResult && (
+              <div className="grid grid-cols-2 gap-2">
+                <Card>
+                  <CardContent className="pt-3 pb-3">
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-blue-600">
+                        {progress?.currentEnergy ||
+                          currentResult.bestConformation.energy}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        Current Energy
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-3 pb-3">
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-green-600">
+                        {progress?.bestEnergy ||
+                          currentResult.bestConformation.energy}
+                      </div>
+                      <div className="text-xs text-gray-600">Best Energy</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )
           )}
         </div>
 
         {/* Right Column: Visualization + Energy Evolution */}
-        {currentResult && bestConformation && (
+        {isRunning && !currentResult ? (
           <div className="space-y-4">
-            {/* Primary Visualization */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg">Visualization</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-48 bg-gray-50 rounded-md overflow-hidden">
-                  <Canvas>
-                    <OrthographicCamera
-                      makeDefault
-                      position={[0, 0, 10]}
-                      near={0.1}
-                      far={1000}
-                      zoom={40}
-                    />
-                    <ambientLight intensity={0.5} />
-                    <directionalLight position={[10, 10, 10]} intensity={1} />
-                    <OrbitControls
-                      enableRotate
-                      enablePan
-                      enableZoom
-                      screenSpacePanning
-                      target={[0, 0, 0]}
-                    />
-                    <ProteinModel
-                      sequence={bestConformation.sequence}
-                      directions={bestConformation.directions}
-                      type="3d"
-                    />
-                  </Canvas>
+                <div className="h-48 bg-gray-50 rounded-md overflow-hidden flex items-center justify-center">
+                  <Skeleton className="h-40 w-full" />
                 </div>
               </CardContent>
             </Card>
-
-            {/* Detailed Energy Evolution */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg">Energy Evolution</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-48">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={currentResult.energyHistory}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="iteration" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="energy"
-                        stroke="#8884d8"
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
+                <Skeleton className="h-48 w-full" />
               </CardContent>
             </Card>
           </div>
+        ) : (
+          currentResult &&
+          bestConformation && (
+            <div className="space-y-4">
+              {/* Primary Visualization */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">Visualization</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-48 bg-gray-50 rounded-md overflow-hidden">
+                    <Canvas>
+                      <OrthographicCamera
+                        makeDefault
+                        position={[0, 0, 10]}
+                        near={0.1}
+                        far={1000}
+                        zoom={40}
+                      />
+                      <ambientLight intensity={0.5} />
+                      <directionalLight position={[10, 10, 10]} intensity={1} />
+                      <OrbitControls
+                        enableRotate
+                        enablePan
+                        enableZoom
+                        screenSpacePanning
+                        target={[0, 0, 0]}
+                      />
+                      <ProteinModel
+                        sequence={bestConformation.sequence}
+                        directions={bestConformation.directions}
+                        type="3d"
+                      />
+                    </Canvas>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Detailed Energy Evolution */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">Energy Evolution</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={currentResult.energyHistory}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="iteration" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="energy"
+                          stroke="#8884d8"
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )
         )}
       </div>
 
