@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -55,6 +55,9 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
   initialDirections,
   onOptimizationComplete,
 }) => {
+  // Use provided sequence
+  const activeSequence = sequence;
+
   // Algorithm selection and parameters
   const [algorithmType, setAlgorithmType] =
     useState<AlgorithmType>("monte-carlo");
@@ -96,7 +99,10 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
   const [solverService] = useState(() => new ProteinSolverService());
 
   const runSolver = useCallback(async () => {
-    if (!sequence) return;
+    if (!activeSequence) return;
+
+    // Validate sequence before running
+    if (!validateSequence(activeSequence)) return;
 
     setIsRunning(true);
     setProgress(null);
@@ -106,7 +112,7 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
     try {
       const config: SolverConfig = {
         algorithm: algorithmType,
-        sequence,
+        sequence: activeSequence,
         initialDirections,
         maxIterations: iterations[0],
         populationSize:
@@ -156,10 +162,13 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
           setCurrentResult(result);
           setBestConformation(result.bestConformation);
           setProgress({ ...progress!, progress: 100 });
-          onOptimizationComplete(
-            result.bestConformation.directions,
-            result.bestConformation.energy
-          );
+          // Only call onOptimizationComplete if we have initialDirections (meaning we're working with existing protein data)
+          if (initialDirections) {
+            onOptimizationComplete(
+              result.bestConformation.directions,
+              result.bestConformation.energy
+            );
+          }
         },
         onError: (error) => {
           console.error("Solver error:", error);
@@ -171,7 +180,7 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
       setIsRunning(false);
     }
   }, [
-    sequence,
+    activeSequence,
     algorithmType,
     iterations,
     populationSize,
@@ -186,7 +195,20 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
     setIsRunning(false);
   }, [solverService]);
 
-  if (!sequence) {
+  const validateSequence = (seq: string) => {
+    if (!seq) {
+      return false;
+    }
+    if (!/^[HP]+$/.test(seq)) {
+      return false;
+    }
+    if (seq.length < 2) {
+      return false;
+    }
+    return true;
+  };
+
+  if (!activeSequence) {
     return (
       <Card>
         <CardContent className="pt-6">
@@ -656,7 +678,11 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
               </CardHeader>
               <CardContent>
                 <div className="h-48 bg-gray-50 rounded-md overflow-hidden">
-                  <Canvas>
+                  <Canvas
+                    key={`solver-canvas-${
+                      bestConformation?.sequence || "empty"
+                    }`}
+                  >
                     <OrthographicCamera
                       makeDefault
                       position={[0, 0, 10]}
@@ -674,11 +700,21 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
                       target={[0, 0, 0]}
                     />
                     {bestConformation ? (
-                      <ProteinModel
-                        sequence={bestConformation.sequence}
-                        directions={bestConformation.directions}
-                        type="3d"
-                      />
+                      <Suspense
+                        fallback={
+                          <Html center>
+                            <div className="text-center text-gray-500">
+                              Loading visualization...
+                            </div>
+                          </Html>
+                        }
+                      >
+                        <ProteinModel
+                          sequence={bestConformation.sequence}
+                          directions={bestConformation.directions}
+                          type="3d"
+                        />
+                      </Suspense>
                     ) : (
                       <Html center>
                         <div className="text-center text-gray-500">
