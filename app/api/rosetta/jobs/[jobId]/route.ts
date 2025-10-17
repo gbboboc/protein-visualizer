@@ -4,10 +4,11 @@ const SERVICE_URL = process.env.ROSETTA_SERVICE_URL || "http://localhost:8000";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { jobId: string } }
+  context: { params: Promise<{ jobId: string }> }
 ) {
   try {
-    const res = await fetch(`${SERVICE_URL}/jobs/${params.jobId}`);
+    const { jobId } = await context.params;
+    const res = await fetch(`${SERVICE_URL}/jobs/${jobId}`);
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch (e) {
