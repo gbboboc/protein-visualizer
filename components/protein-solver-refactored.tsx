@@ -15,7 +15,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, OrthographicCamera } from "@react-three/drei";
+import { OrbitControls, OrthographicCamera, Html } from "@react-three/drei";
 import ProteinModel from "./protein-model";
 import {
   LineChart,
@@ -378,7 +378,7 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
                         type="3d"
                       />
                     ) : (
-                      <div className="flex items-center justify-center h-full">
+                      <Html center>
                         <div className="text-center text-gray-500">
                           <div className="text-sm">
                             No visualization available
@@ -387,7 +387,7 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
                             Run solver to generate a preview
                           </div>
                         </div>
-                      </div>
+                      </Html>
                     )}
                   </Canvas>
                 </div>
