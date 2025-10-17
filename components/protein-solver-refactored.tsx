@@ -717,4 +717,4 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
   );
 };
 
-export default ProteinSolverRefactored;
+export default React.memo(ProteinSolverRefactored);

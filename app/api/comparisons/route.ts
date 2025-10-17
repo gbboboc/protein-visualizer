@@ -19,7 +19,12 @@ export async function GET(request: NextRequest) {
       proteins: comparison.proteins // proteins is already an array of IDs
     }))
 
-    return NextResponse.json(formattedComparisons)
+    const res = NextResponse.json(formattedComparisons)
+    res.headers.set(
+      "Cache-Control",
+      "public, s-maxage=60, stale-while-revalidate=300"
+    )
+    return res
   } catch (error) {
     console.error("Error fetching comparisons:", error)
     return NextResponse.json(

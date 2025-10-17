@@ -14,7 +14,12 @@ export async function GET(request: NextRequest) {
       .populate('proteinId')
       .sort({ createdAt: -1 })
 
-    return NextResponse.json(convertDocToObj(exports))
+    const res = NextResponse.json(convertDocToObj(exports))
+    res.headers.set(
+      "Cache-Control",
+      "public, s-maxage=60, stale-while-revalidate=300"
+    )
+    return res
   } catch (error) {
     console.error("Error fetching exports:", error)
     return NextResponse.json(

@@ -17,7 +17,7 @@ import {
 import type { Direction } from "../types";
 
 export interface SolverConfig {
-  algorithm: 'monte-carlo' | 'simulated-annealing' | 'ga';
+  algorithm: 'monte-carlo' | 'simulated-annealing' | 'ga' | 'es' | 'ep' | 'gp';
   sequence: string;
   initialDirections?: Direction[];
   maxIterations: number;
@@ -30,6 +30,12 @@ export interface SolverConfig {
   initialTemperature?: number; // For Simulated Annealing
   finalTemperature?: number;
   coolingRate?: number;
+  // ES-specific
+  mu?: number;
+  lambda?: number;
+  initialMutationRate?: number;
+  // GP-specific
+  maxTreeDepth?: number;
 }
 
 export interface SolverProgress {

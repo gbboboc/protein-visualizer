@@ -30,7 +30,12 @@ export async function GET(request: NextRequest) {
     }
 
     const proteins = await Protein.find(query).sort({ createdAt: -1 })
-    return NextResponse.json(convertDocToObj(proteins))
+    const res = NextResponse.json(convertDocToObj(proteins))
+    res.headers.set(
+      "Cache-Control",
+      "public, s-maxage=60, stale-while-revalidate=300"
+    )
+    return res
   } catch (error) {
     console.error("Error fetching proteins:", error)
     return NextResponse.json(

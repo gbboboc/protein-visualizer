@@ -1,6 +1,6 @@
 "use client";
 
-import type React from "react";
+import React from "react";
 import type { ProteinSequence } from "./protein-visualizer";
 import { Progress } from "@/components/ui/progress";
 import { EnergyCalculator } from "@/lib/solvers/energy-calculator";
@@ -90,7 +90,10 @@ const ProteinAnalysis: React.FC<ProteinAnalysisProps> = ({ proteinData }) => {
     }
   };
 
-  const metrics = calculateMetrics();
+  const metrics = React.useMemo(
+    () => calculateMetrics(),
+    [sequence, directions]
+  );
 
   return (
     <div className="space-y-4">
@@ -212,4 +215,4 @@ const ProteinAnalysis: React.FC<ProteinAnalysisProps> = ({ proteinData }) => {
   );
 };
 
-export default ProteinAnalysis;
+export default React.memo(ProteinAnalysis);
