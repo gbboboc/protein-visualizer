@@ -138,7 +138,11 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
           algorithmType === "gp"
             ? tournamentSize[0]
             : undefined,
-        // ES parameters (will use defaults from service)
+        // ES parameters
+        mu: algorithmType === "es" ? mu[0] : undefined,
+        lambda: algorithmType === "es" ? lambda[0] : undefined,
+        initialMutationRate:
+          algorithmType === "es" ? initialMutationRate[0] : undefined,
         // GP parameters
         maxTreeDepth: algorithmType === "gp" ? maxTreeDepth[0] : undefined,
       };

@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const res = NextResponse.json(formattedComparisons)
     res.headers.set(
       "Cache-Control",
-      "public, s-maxage=60, stale-while-revalidate=300"
+      "private, max-age=60, stale-while-revalidate=300"
     )
     return res
   } catch (error) {

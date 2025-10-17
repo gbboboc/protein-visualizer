@@ -93,9 +93,9 @@ export class ProteinSolverService {
         this.currentSolver = new EvolutionStrategiesSolver({
           sequence: config.sequence,
           maxIterations: config.maxIterations,
-          mu: 25,
-          lambda: 150,
-          initialMutationRate: 0.1,
+          mu: config.mu ?? 25,
+          lambda: config.lambda ?? 150,
+          initialMutationRate: config.initialMutationRate ?? 0.1,
           mutationDecay: 0.97,
           mutationBoost: 1.1,
           stagnationWindow: 10,

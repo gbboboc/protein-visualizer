@@ -29,6 +29,12 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { directionToPosition } from "@/lib/utils";
+import {
+  ProteinSolverService,
+  type SolverConfig,
+  type SolverProgress,
+} from "@/lib/services/protein-solver-service";
+import type { SolverResult } from "@/lib/solvers";
 
 interface Position {
   x: number;
@@ -343,11 +349,62 @@ const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
     }
   };
 
-  const handleStartOptimization = () => {
+  const handleStartOptimization = async () => {
     if (algorithm === "monte-carlo") {
       runMonteCarloSimulation();
-    } else if (algorithm === "simulated-annealing") {
+      return;
+    }
+    if (algorithm === "simulated-annealing") {
       runSimulatedAnnealing();
+      return;
+    }
+
+    // Wire GA/ES/EP/GP via service with sensible defaults
+    const service = new ProteinSolverService();
+    setIsRunning(true);
+    setCurrentIteration(0);
+    setEnergyHistory([]);
+
+    const config: SolverConfig = {
+      algorithm: algorithm as any,
+      sequence,
+      initialDirections,
+      maxIterations: iterations,
+      populationSize:
+        algorithm === "ga" || algorithm === "ep" || algorithm === "gp"
+          ? 50
+          : undefined,
+      // Use component temperature only for SA; other algos use service defaults
+    } as unknown as SolverConfig;
+
+    try {
+      await service.solve(config, {
+        onProgress: (p: SolverProgress) => {
+          setCurrentIteration(p.iteration);
+          setEnergy(p.currentEnergy);
+          setEnergyHistory((prev) => [
+            ...prev,
+            { iteration: p.iteration, energy: p.currentEnergy },
+          ]);
+        },
+        onComplete: (result: SolverResult) => {
+          const best = result.bestConformation;
+          setDirections(best.directions as Direction[]);
+          setEnergy(best.energy);
+          setBestEnergy(best.energy);
+          setBestDirections(best.directions as Direction[]);
+          setEnergyHistory(result.energyHistory);
+          setCurrentIteration(result.totalIterations ?? iterations);
+          onOptimizationComplete?.(best.directions as Direction[], best.energy);
+        },
+        onError: (error: Error) => {
+          console.error("Solver error:", error);
+        },
+      });
+    } catch (e) {
+      console.error("Solver execution failed:", e);
+    } finally {
+      setIsRunning(false);
     }
   };
 
