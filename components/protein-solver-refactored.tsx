@@ -276,35 +276,50 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
                 </CardContent>
               </Card>
             </div>
+          ) : currentResult ? (
+            <div className="grid grid-cols-2 gap-2">
+              <Card>
+                <CardContent className="pt-3 pb-3">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-blue-600">
+                      {progress?.currentEnergy ||
+                        currentResult.bestConformation.energy}
+                    </div>
+                    <div className="text-xs text-gray-600">Current Energy</div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-3 pb-3">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-green-600">
+                      {progress?.bestEnergy ||
+                        currentResult.bestConformation.energy}
+                    </div>
+                    <div className="text-xs text-gray-600">Best Energy</div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           ) : (
-            currentResult && (
-              <div className="grid grid-cols-2 gap-2">
-                <Card>
-                  <CardContent className="pt-3 pb-3">
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-blue-600">
-                        {progress?.currentEnergy ||
-                          currentResult.bestConformation.energy}
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        Current Energy
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-3 pb-3">
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-green-600">
-                        {progress?.bestEnergy ||
-                          currentResult.bestConformation.energy}
-                      </div>
-                      <div className="text-xs text-gray-600">Best Energy</div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )
+            <div className="grid grid-cols-2 gap-2">
+              <Card>
+                <CardContent className="pt-3 pb-3">
+                  <div className="text-center text-gray-500">
+                    <div className="text-sm">No results yet</div>
+                    <div className="text-xs mt-1">Run solver to begin</div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-3 pb-3">
+                  <div className="text-center text-gray-500">
+                    <div className="text-sm">No results yet</div>
+                    <div className="text-xs mt-1">Run solver to begin</div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
         </div>
 
@@ -330,51 +345,64 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
               </CardContent>
             </Card>
           </div>
-        ) : (
-          currentResult &&
-          bestConformation && (
-            <div className="space-y-4">
-              {/* Primary Visualization */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Visualization</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-48 bg-gray-50 rounded-md overflow-hidden">
-                    <Canvas>
-                      <OrthographicCamera
-                        makeDefault
-                        position={[0, 0, 10]}
-                        near={0.1}
-                        far={1000}
-                        zoom={40}
-                      />
-                      <ambientLight intensity={0.5} />
-                      <directionalLight position={[10, 10, 10]} intensity={1} />
-                      <OrbitControls
-                        enableRotate
-                        enablePan
-                        enableZoom
-                        screenSpacePanning
-                        target={[0, 0, 0]}
-                      />
+        ) : currentResult ? (
+          <div className="space-y-4">
+            {/* Primary Visualization */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Visualization</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-48 bg-gray-50 rounded-md overflow-hidden">
+                  <Canvas>
+                    <OrthographicCamera
+                      makeDefault
+                      position={[0, 0, 10]}
+                      near={0.1}
+                      far={1000}
+                      zoom={40}
+                    />
+                    <ambientLight intensity={0.5} />
+                    <directionalLight position={[10, 10, 10]} intensity={1} />
+                    <OrbitControls
+                      enableRotate
+                      enablePan
+                      enableZoom
+                      screenSpacePanning
+                      target={[0, 0, 0]}
+                    />
+                    {bestConformation ? (
                       <ProteinModel
                         sequence={bestConformation.sequence}
                         directions={bestConformation.directions}
                         type="3d"
                       />
-                    </Canvas>
-                  </div>
-                </CardContent>
-              </Card>
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-center text-gray-500">
+                          <div className="text-sm">
+                            No visualization available
+                          </div>
+                          <div className="text-xs mt-1">
+                            Run solver to generate a preview
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </Canvas>
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Detailed Energy Evolution */}
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Energy Evolution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-48">
+            {/* Detailed Energy Evolution */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Energy Evolution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-48">
+                  {currentResult.energyHistory &&
+                  currentResult.energyHistory.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={currentResult.energyHistory}>
                         <CartesianGrid strokeDasharray="3 3" />
@@ -391,11 +419,53 @@ const ProteinSolverRefactored: React.FC<ProteinSolverRefactoredProps> = ({
                         />
                       </LineChart>
                     </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center text-gray-500">
+                        <div className="text-sm">No energy data available</div>
+                        <div className="text-xs mt-1">
+                          Run solver to generate energy evolution
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Visualization</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-48 bg-gray-50 rounded-md overflow-hidden flex items-center justify-center">
+                  <div className="text-center text-gray-500">
+                    <div className="text-sm">No visualization available</div>
+                    <div className="text-xs mt-1">
+                      Run solver to generate a preview
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          )
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Energy Evolution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-48 bg-gray-50 rounded-md overflow-hidden flex items-center justify-center">
+                  <div className="text-center text-gray-500">
+                    <div className="text-sm">No energy data available</div>
+                    <div className="text-xs mt-1">
+                      Run solver to generate energy evolution
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
       </div>
 

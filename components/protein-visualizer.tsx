@@ -135,6 +135,18 @@ const ProteinVisualizer = () => {
     fetchSavedContent();
   }, [toast, session?.user?.id]);
 
+  // Reset canvas ready states when visualization type changes
+  useEffect(() => {
+    setCanvasReady(false);
+    setFullscreenCanvasReady(false);
+  }, [visualizationType]);
+
+  // Reset canvas ready states when protein data changes
+  useEffect(() => {
+    setCanvasReady(false);
+    setFullscreenCanvasReady(false);
+  }, [proteinData]);
+
   const handleVisualize = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Visualizing protein with sequence:", sequence);
@@ -683,7 +695,13 @@ const ProteinVisualizer = () => {
               {/* Fullscreen Canvas Dialog */}
               <Dialog
                 open={isCanvasFullscreen}
-                onOpenChange={setIsCanvasFullscreen}
+                onOpenChange={(open) => {
+                  setIsCanvasFullscreen(open);
+                  // Reset fullscreen canvas ready state when dialog is opened
+                  if (open) {
+                    setFullscreenCanvasReady(false);
+                  }
+                }}
               >
                 <DialogContent className="max-w-[90vw] w-[90vw] h-[90vh]">
                   <DialogHeader>
