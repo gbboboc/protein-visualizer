@@ -213,4 +213,4 @@ const ProteinModel: React.FC<ProteinModelProps> = ({
   );
 };
 
-export default ProteinModel;
+export default React.memo(ProteinModel);

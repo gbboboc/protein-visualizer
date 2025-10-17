@@ -29,6 +29,12 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { directionToPosition } from "@/lib/utils";
+import {
+  ProteinSolverService,
+  type SolverConfig,
+  type SolverProgress,
+} from "@/lib/services/protein-solver-service";
+import type { SolverResult } from "@/lib/solvers";
 
 interface Position {
   x: number;
@@ -65,25 +71,25 @@ const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
   // Generate valid non-intersecting directions
   const generateValidDirections = (seq: string): Direction[] => {
     if (seq.length <= 1) return [];
-    
+
     const directions: Direction[] = [];
     const occupied = new Set<string>();
     let currentPos = { x: 0, y: 0, z: 0 };
-    
+
     // Always start with the first position
     occupied.add(`${currentPos.x},${currentPos.y},${currentPos.z}`);
-    
+
     // Generate directions that don't cause self-intersection
     const possibleDirections: Direction[] = ["R", "U", "L", "D"];
-    
+
     for (let i = 1; i < seq.length; i++) {
       // Try directions in order of preference
       let directionFound = false;
-      
+
       for (const dir of possibleDirections) {
         const nextPos = getNextPosition(currentPos, dir);
         const posKey = `${nextPos.x},${nextPos.y},${nextPos.z}`;
-        
+
         if (!occupied.has(posKey)) {
           directions.push(dir);
           occupied.add(posKey);
@@ -92,27 +98,35 @@ const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
           break;
         }
       }
-      
+
       // If no valid direction found, use a random one (fallback)
       if (!directionFound) {
-        const randomDir = possibleDirections[Math.floor(Math.random() * possibleDirections.length)];
+        const randomDir =
+          possibleDirections[
+            Math.floor(Math.random() * possibleDirections.length)
+          ];
         directions.push(randomDir);
         const nextPos = getNextPosition(currentPos, randomDir);
         currentPos = nextPos;
         // Don't add to occupied set to allow some flexibility
       }
     }
-    
+
     return directions;
   };
 
   const getNextPosition = (pos: Position, dir: Direction): Position => {
     switch (dir) {
-      case 'L': return { x: pos.x - 1, y: pos.y, z: pos.z };
-      case 'R': return { x: pos.x + 1, y: pos.y, z: pos.z };
-      case 'U': return { x: pos.x, y: pos.y + 1, z: pos.z };
-      case 'D': return { x: pos.x, y: pos.y - 1, z: pos.z };
-      default: return pos;
+      case "L":
+        return { x: pos.x - 1, y: pos.y, z: pos.z };
+      case "R":
+        return { x: pos.x + 1, y: pos.y, z: pos.z };
+      case "U":
+        return { x: pos.x, y: pos.y + 1, z: pos.z };
+      case "D":
+        return { x: pos.x, y: pos.y - 1, z: pos.z };
+      default:
+        return pos;
     }
   };
 
@@ -335,11 +349,65 @@ const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
     }
   };
 
-  const handleStartOptimization = () => {
+  const handleStartOptimization = async () => {
     if (algorithm === "monte-carlo") {
       runMonteCarloSimulation();
-    } else if (algorithm === "simulated-annealing") {
+      return;
+    }
+    if (algorithm === "simulated-annealing") {
       runSimulatedAnnealing();
+      return;
+    }
+
+    // For GA/ES/EP/GP algorithms: This component uses a simplified interface
+    // and relies on service defaults for algorithm-specific parameters.
+    // For advanced parameter control, use the protein-solver-refactored component.
+    const service = new ProteinSolverService();
+    setIsRunning(true);
+    setCurrentIteration(0);
+    setEnergyHistory([]);
+
+    // Build minimal config with only the parameters we expose in this simplified UI
+    // The service will use sensible defaults for all other algorithm-specific parameters
+    const config: Partial<SolverConfig> = {
+      algorithm: algorithm as SolverConfig["algorithm"],
+      sequence,
+      initialDirections,
+      maxIterations: iterations,
+      // Only set populationSize for algorithms that use it
+      ...(algorithm === "ga" || algorithm === "ep" || algorithm === "gp"
+        ? { populationSize: 50 }
+        : {}),
+    };
+
+    try {
+      await service.solve(config as SolverConfig, {
+        onProgress: (p: SolverProgress) => {
+          setCurrentIteration(p.iteration);
+          setEnergy(p.currentEnergy);
+          setEnergyHistory((prev) => [
+            ...prev,
+            { iteration: p.iteration, energy: p.currentEnergy },
+          ]);
+        },
+        onComplete: (result: SolverResult) => {
+          const best = result.bestConformation;
+          setDirections(best.directions as Direction[]);
+          setEnergy(best.energy);
+          setBestEnergy(best.energy);
+          setBestDirections(best.directions as Direction[]);
+          setEnergyHistory(result.energyHistory);
+          setCurrentIteration(result.totalIterations ?? iterations);
+          onOptimizationComplete?.(best.directions as Direction[], best.energy);
+        },
+        onError: (error: Error) => {
+          console.error("Solver error:", error);
+        },
+      });
+    } catch (e) {
+      console.error("Solver execution failed:", e);
+    } finally {
+      setIsRunning(false);
     }
   };
 
@@ -365,8 +433,24 @@ const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
                 <SelectItem value="simulated-annealing">
                   Simulated Annealing
                 </SelectItem>
+                <SelectItem value="ga">Genetic Algorithm (GA)</SelectItem>
+                <SelectItem value="es">Evolution Strategies (ES)</SelectItem>
+                <SelectItem value="ep">
+                  Evolutionary Programming (EP)
+                </SelectItem>
+                <SelectItem value="gp">Genetic Programming (GP)</SelectItem>
               </SelectContent>
             </Select>
+            {(algorithm === "ga" ||
+              algorithm === "es" ||
+              algorithm === "ep" ||
+              algorithm === "gp") && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Note: Advanced algorithms use service defaults for specialized
+                parameters. For full parameter control, use the Solver tab in
+                the main interface.
+              </p>
+            )}
           </div>
 
           <div>

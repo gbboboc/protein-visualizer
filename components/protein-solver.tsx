@@ -31,6 +31,10 @@ import { Direction } from "@/lib/types";
 import {
   MonteCarloSolver,
   SimulatedAnnealingSolver,
+  GeneticAlgorithmSolver,
+  EvolutionStrategiesSolver,
+  EvolutionaryProgrammingSolver,
+  GeneticProgrammingSolver,
   type SolverResult,
   type Conformation,
 } from "@/lib/solvers";
@@ -41,7 +45,13 @@ interface ProteinSolverProps {
   onOptimizationComplete: (directions: Direction[], energy: number) => void;
 }
 
-type AlgorithmType = "monte-carlo" | "simulated-annealing";
+type AlgorithmType =
+  | "monte-carlo"
+  | "simulated-annealing"
+  | "ga"
+  | "es"
+  | "ep"
+  | "gp";
 
 const ProteinSolver: React.FC<ProteinSolverProps> = ({
   sequence,
@@ -54,6 +64,25 @@ const ProteinSolver: React.FC<ProteinSolverProps> = ({
   const [iterations, setIterations] = useState([1000]);
   const [populationSize, setPopulationSize] = useState([50]); // For Monte Carlo
   const [temperature, setTemperature] = useState([10]); // For Simulated Annealing
+
+  // GA parameters
+  const [crossoverRate, setCrossoverRate] = useState([0.9]);
+  const [mutationRate, setMutationRate] = useState([0.1]);
+  const [eliteCount, setEliteCount] = useState([3]);
+  const [tournamentSize, setTournamentSize] = useState([3]);
+
+  // ES parameters
+  const [mu, setMu] = useState([25]);
+  const [lambda, setLambda] = useState([150]);
+  const [initialMutationRate, setInitialMutationRate] = useState([0.1]);
+
+  // EP parameters
+  const [epMutationRate, setEpMutationRate] = useState([0.1]);
+
+  // GP parameters
+  const [maxTreeDepth, setMaxTreeDepth] = useState([4]);
+  const [gpCrossoverRate, setGpCrossoverRate] = useState([0.9]);
+  const [gpMutationRate, setGpMutationRate] = useState([0.2]);
 
   // Solver state
   const [isRunning, setIsRunning] = useState(false);
@@ -84,7 +113,7 @@ const ProteinSolver: React.FC<ProteinSolverProps> = ({
           populationSize: populationSize[0],
           initialDirections,
         });
-      } else {
+      } else if (algorithmType === "simulated-annealing") {
         solver = new SimulatedAnnealingSolver({
           sequence,
           maxIterations: iterations[0],
@@ -93,6 +122,55 @@ const ProteinSolver: React.FC<ProteinSolverProps> = ({
           coolingRate: 0.95,
           initialDirections,
         });
+      } else if (algorithmType === "ga") {
+        solver = new GeneticAlgorithmSolver({
+          sequence,
+          maxIterations: iterations[0],
+          populationSize: populationSize[0],
+          crossoverRate: crossoverRate[0],
+          mutationRate: mutationRate[0],
+          eliteCount: eliteCount[0],
+          tournamentSize: tournamentSize[0],
+          initialDirections,
+        });
+      } else if (algorithmType === "es") {
+        solver = new EvolutionStrategiesSolver({
+          sequence,
+          maxIterations: iterations[0],
+          mu: mu[0],
+          lambda: lambda[0],
+          initialMutationRate: initialMutationRate[0],
+          mutationDecay: 0.97,
+          mutationBoost: 1.1,
+          stagnationWindow: 10,
+          plusSelection: true,
+          initialDirections,
+        });
+      } else if (algorithmType === "ep") {
+        solver = new EvolutionaryProgrammingSolver({
+          sequence,
+          maxIterations: iterations[0],
+          populationSize: populationSize[0],
+          mutationRate: epMutationRate[0],
+          tournamentSize: tournamentSize[0],
+          eliteCount: 2,
+          initialDirections,
+        });
+      } else if (algorithmType === "gp") {
+        solver = new GeneticProgrammingSolver({
+          sequence,
+          maxIterations: iterations[0],
+          populationSize: populationSize[0],
+          maxTreeDepth: maxTreeDepth[0],
+          crossoverRate: gpCrossoverRate[0],
+          mutationRate: gpMutationRate[0],
+          eliteCount: eliteCount[0],
+          tournamentSize: tournamentSize[0],
+          rolloutCount: 1,
+          initialDirections,
+        });
+      } else {
+        throw new Error(`Unknown algorithm type: ${algorithmType}`);
       }
 
       // Run solver with progress updates
@@ -160,6 +238,14 @@ const ProteinSolver: React.FC<ProteinSolverProps> = ({
                     <SelectItem value="simulated-annealing">
                       Simulated Annealing
                     </SelectItem>
+                    <SelectItem value="ga">Genetic Algorithm (GA)</SelectItem>
+                    <SelectItem value="es">
+                      Evolution Strategies (ES)
+                    </SelectItem>
+                    <SelectItem value="ep">
+                      Evolutionary Programming (EP)
+                    </SelectItem>
+                    <SelectItem value="gp">Genetic Programming (GP)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -205,6 +291,245 @@ const ProteinSolver: React.FC<ProteinSolverProps> = ({
                     step={1}
                     disabled={isRunning}
                   />
+                </div>
+              )}
+
+              {algorithmType === "ga" && (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label className="text-sm">
+                      Population Size: {populationSize[0]}
+                    </Label>
+                    <Slider
+                      value={populationSize}
+                      onValueChange={setPopulationSize}
+                      min={20}
+                      max={200}
+                      step={10}
+                      disabled={isRunning}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">
+                      Crossover Rate: {crossoverRate[0].toFixed(2)}
+                    </Label>
+                    <Slider
+                      value={crossoverRate}
+                      onValueChange={setCrossoverRate}
+                      min={0.1}
+                      max={1.0}
+                      step={0.05}
+                      disabled={isRunning}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">
+                      Mutation Rate: {mutationRate[0].toFixed(2)}
+                    </Label>
+                    <Slider
+                      value={mutationRate}
+                      onValueChange={setMutationRate}
+                      min={0.01}
+                      max={0.5}
+                      step={0.01}
+                      disabled={isRunning}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">
+                      Elite Count: {eliteCount[0]}
+                    </Label>
+                    <Slider
+                      value={eliteCount}
+                      onValueChange={setEliteCount}
+                      min={1}
+                      max={10}
+                      step={1}
+                      disabled={isRunning}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">
+                      Tournament Size: {tournamentSize[0]}
+                    </Label>
+                    <Slider
+                      value={tournamentSize}
+                      onValueChange={setTournamentSize}
+                      min={2}
+                      max={10}
+                      step={1}
+                      disabled={isRunning}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {algorithmType === "es" && (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label className="text-sm">Parents (μ): {mu[0]}</Label>
+                    <Slider
+                      value={mu}
+                      onValueChange={setMu}
+                      min={10}
+                      max={50}
+                      step={5}
+                      disabled={isRunning}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">
+                      Offspring (λ): {lambda[0]}
+                    </Label>
+                    <Slider
+                      value={lambda}
+                      onValueChange={setLambda}
+                      min={50}
+                      max={300}
+                      step={10}
+                      disabled={isRunning}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">
+                      Initial Mutation Rate: {initialMutationRate[0].toFixed(2)}
+                    </Label>
+                    <Slider
+                      value={initialMutationRate}
+                      onValueChange={setInitialMutationRate}
+                      min={0.01}
+                      max={0.5}
+                      step={0.01}
+                      disabled={isRunning}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {algorithmType === "ep" && (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label className="text-sm">
+                      Population Size: {populationSize[0]}
+                    </Label>
+                    <Slider
+                      value={populationSize}
+                      onValueChange={setPopulationSize}
+                      min={20}
+                      max={200}
+                      step={10}
+                      disabled={isRunning}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">
+                      Mutation Rate: {epMutationRate[0].toFixed(2)}
+                    </Label>
+                    <Slider
+                      value={epMutationRate}
+                      onValueChange={setEpMutationRate}
+                      min={0.01}
+                      max={0.5}
+                      step={0.01}
+                      disabled={isRunning}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">
+                      Tournament Size: {tournamentSize[0]}
+                    </Label>
+                    <Slider
+                      value={tournamentSize}
+                      onValueChange={setTournamentSize}
+                      min={2}
+                      max={10}
+                      step={1}
+                      disabled={isRunning}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {algorithmType === "gp" && (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label className="text-sm">
+                      Population Size: {populationSize[0]}
+                    </Label>
+                    <Slider
+                      value={populationSize}
+                      onValueChange={setPopulationSize}
+                      min={20}
+                      max={200}
+                      step={10}
+                      disabled={isRunning}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">
+                      Max Tree Depth: {maxTreeDepth[0]}
+                    </Label>
+                    <Slider
+                      value={maxTreeDepth}
+                      onValueChange={setMaxTreeDepth}
+                      min={2}
+                      max={8}
+                      step={1}
+                      disabled={isRunning}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">
+                      Crossover Rate: {gpCrossoverRate[0].toFixed(2)}
+                    </Label>
+                    <Slider
+                      value={gpCrossoverRate}
+                      onValueChange={setGpCrossoverRate}
+                      min={0.1}
+                      max={1.0}
+                      step={0.05}
+                      disabled={isRunning}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">
+                      Mutation Rate: {gpMutationRate[0].toFixed(2)}
+                    </Label>
+                    <Slider
+                      value={gpMutationRate}
+                      onValueChange={setGpMutationRate}
+                      min={0.01}
+                      max={0.5}
+                      step={0.01}
+                      disabled={isRunning}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">
+                      Elite Count: {eliteCount[0]}
+                    </Label>
+                    <Slider
+                      value={eliteCount}
+                      onValueChange={setEliteCount}
+                      min={1}
+                      max={10}
+                      step={1}
+                      disabled={isRunning}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">
+                      Tournament Size: {tournamentSize[0]}
+                    </Label>
+                    <Slider
+                      value={tournamentSize}
+                      onValueChange={setTournamentSize}
+                      min={2}
+                      max={10}
+                      step={1}
+                      disabled={isRunning}
+                    />
+                  </div>
                 </div>
               )}
 

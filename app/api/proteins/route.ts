@@ -30,7 +30,17 @@ export async function GET(request: NextRequest) {
     }
 
     const proteins = await Protein.find(query).sort({ createdAt: -1 })
-    return NextResponse.json(convertDocToObj(proteins))
+    const res = NextResponse.json(convertDocToObj(proteins))
+
+    // Use private cache policy when request is user-scoped or results include private items
+    const containsPrivate = Boolean(userId) || proteins.some((p: any) => p.isPublic === false)
+    res.headers.set(
+      "Cache-Control",
+      containsPrivate
+        ? "private, max-age=0, s-maxage=0, must-revalidate"
+        : "public, s-maxage=60, stale-while-revalidate=300"
+    )
+    return res
   } catch (error) {
     console.error("Error fetching proteins:", error)
     return NextResponse.json(

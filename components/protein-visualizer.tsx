@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, OrthographicCamera } from "@react-three/drei";
 import { Separator } from "@/components/ui/separator";
@@ -36,11 +37,27 @@ import {
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 
-import ProteinModel from "@/components/protein-model";
-import ProteinAnalysis from "@/components/protein-analysis";
-import ProteinComparison from "@/components/protein-comparison";
-import ProteinSolver from "@/components/protein-solver-refactored";
-import ExportOptions from "@/components/export-options";
+import dynamic from "next/dynamic";
+const ProteinModel = dynamic(() => import("@/components/protein-model"), {
+  ssr: false,
+  loading: () => null,
+});
+const ProteinAnalysis = dynamic(() => import("@/components/protein-analysis"), {
+  ssr: false,
+  loading: () => null,
+});
+const ProteinComparison = dynamic(
+  () => import("@/components/protein-comparison"),
+  { ssr: false, loading: () => null }
+);
+const ProteinSolver = dynamic(
+  () => import("@/components/protein-solver-refactored"),
+  { ssr: false, loading: () => null }
+);
+const ExportOptions = dynamic(() => import("@/components/export-options"), {
+  ssr: false,
+  loading: () => null,
+});
 import { getPublicProteins, saveProtein } from "@/app/actions";
 import { SavedContentDialog } from "./saved-content-dialog";
 import { Direction } from "@/lib/types";
@@ -651,11 +668,13 @@ const ProteinVisualizer = () => {
                           position={[-10, -10, -10]}
                           intensity={0.5}
                         />
-                        <ProteinModel
-                          sequence={proteinData.sequence}
-                          directions={proteinData.directions}
-                          type={visualizationType}
-                        />
+                        <Suspense fallback={null}>
+                          <ProteinModel
+                            sequence={proteinData.sequence}
+                            directions={proteinData.directions}
+                            type={visualizationType}
+                          />
+                        </Suspense>
                       </Canvas>
                     </div>
                     <div className="w-full h-[500px] overflow-y-auto">
@@ -703,11 +722,13 @@ const ProteinVisualizer = () => {
                         intensity={0.5}
                       />
                       {proteinData && (
-                        <ProteinModel
-                          sequence={proteinData.sequence}
-                          directions={proteinData.directions}
-                          type={visualizationType}
-                        />
+                        <Suspense fallback={null}>
+                          <ProteinModel
+                            sequence={proteinData.sequence}
+                            directions={proteinData.directions}
+                            type={visualizationType}
+                          />
+                        </Suspense>
                       )}
                     </Canvas>
                   </div>

@@ -14,7 +14,12 @@ export async function GET(request: NextRequest) {
       .populate('proteinId')
       .sort({ createdAt: -1 })
 
-    return NextResponse.json(convertDocToObj(simulations))
+    const res = NextResponse.json(convertDocToObj(simulations))
+    res.headers.set(
+      "Cache-Control",
+      "public, s-maxage=60, stale-while-revalidate=300"
+    )
+    return res
   } catch (error) {
     console.error("Error fetching energy simulations:", error)
     return NextResponse.json(
