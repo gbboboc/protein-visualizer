@@ -359,26 +359,29 @@ const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
       return;
     }
 
-    // Wire GA/ES/EP/GP via service with sensible defaults
+    // For GA/ES/EP/GP algorithms: This component uses a simplified interface
+    // and relies on service defaults for algorithm-specific parameters.
+    // For advanced parameter control, use the protein-solver-refactored component.
     const service = new ProteinSolverService();
     setIsRunning(true);
     setCurrentIteration(0);
     setEnergyHistory([]);
 
-    const config: SolverConfig = {
-      algorithm: algorithm as any,
+    // Build minimal config with only the parameters we expose in this simplified UI
+    // The service will use sensible defaults for all other algorithm-specific parameters
+    const config: Partial<SolverConfig> = {
+      algorithm: algorithm as SolverConfig["algorithm"],
       sequence,
       initialDirections,
       maxIterations: iterations,
-      populationSize:
-        algorithm === "ga" || algorithm === "ep" || algorithm === "gp"
-          ? 50
-          : undefined,
-      // Use component temperature only for SA; other algos use service defaults
-    } as unknown as SolverConfig;
+      // Only set populationSize for algorithms that use it
+      ...(algorithm === "ga" || algorithm === "ep" || algorithm === "gp"
+        ? { populationSize: 50 }
+        : {}),
+    };
 
     try {
-      await service.solve(config, {
+      await service.solve(config as SolverConfig, {
         onProgress: (p: SolverProgress) => {
           setCurrentIteration(p.iteration);
           setEnergy(p.currentEnergy);
@@ -438,6 +441,16 @@ const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
                 <SelectItem value="gp">Genetic Programming (GP)</SelectItem>
               </SelectContent>
             </Select>
+            {(algorithm === "ga" ||
+              algorithm === "es" ||
+              algorithm === "ep" ||
+              algorithm === "gp") && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Note: Advanced algorithms use service defaults for specialized
+                parameters. For full parameter control, use the Solver tab in
+                the main interface.
+              </p>
+            )}
           </div>
 
           <div>
