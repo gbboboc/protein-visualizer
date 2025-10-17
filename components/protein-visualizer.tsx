@@ -774,7 +774,7 @@ const ProteinVisualizer = () => {
 
               <TabsContent value="energy" className="space-y-4">
                 <ProteinSolver
-                  sequence={proteinData?.sequence || ""}
+                  sequence={proteinData?.sequence || sequence}
                   initialDirections={proteinData?.directions}
                   onOptimizationComplete={handleOptimizationComplete}
                 />
