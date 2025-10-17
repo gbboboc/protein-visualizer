@@ -65,25 +65,25 @@ const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
   // Generate valid non-intersecting directions
   const generateValidDirections = (seq: string): Direction[] => {
     if (seq.length <= 1) return [];
-    
+
     const directions: Direction[] = [];
     const occupied = new Set<string>();
     let currentPos = { x: 0, y: 0, z: 0 };
-    
+
     // Always start with the first position
     occupied.add(`${currentPos.x},${currentPos.y},${currentPos.z}`);
-    
+
     // Generate directions that don't cause self-intersection
     const possibleDirections: Direction[] = ["R", "U", "L", "D"];
-    
+
     for (let i = 1; i < seq.length; i++) {
       // Try directions in order of preference
       let directionFound = false;
-      
+
       for (const dir of possibleDirections) {
         const nextPos = getNextPosition(currentPos, dir);
         const posKey = `${nextPos.x},${nextPos.y},${nextPos.z}`;
-        
+
         if (!occupied.has(posKey)) {
           directions.push(dir);
           occupied.add(posKey);
@@ -92,27 +92,35 @@ const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
           break;
         }
       }
-      
+
       // If no valid direction found, use a random one (fallback)
       if (!directionFound) {
-        const randomDir = possibleDirections[Math.floor(Math.random() * possibleDirections.length)];
+        const randomDir =
+          possibleDirections[
+            Math.floor(Math.random() * possibleDirections.length)
+          ];
         directions.push(randomDir);
         const nextPos = getNextPosition(currentPos, randomDir);
         currentPos = nextPos;
         // Don't add to occupied set to allow some flexibility
       }
     }
-    
+
     return directions;
   };
 
   const getNextPosition = (pos: Position, dir: Direction): Position => {
     switch (dir) {
-      case 'L': return { x: pos.x - 1, y: pos.y, z: pos.z };
-      case 'R': return { x: pos.x + 1, y: pos.y, z: pos.z };
-      case 'U': return { x: pos.x, y: pos.y + 1, z: pos.z };
-      case 'D': return { x: pos.x, y: pos.y - 1, z: pos.z };
-      default: return pos;
+      case "L":
+        return { x: pos.x - 1, y: pos.y, z: pos.z };
+      case "R":
+        return { x: pos.x + 1, y: pos.y, z: pos.z };
+      case "U":
+        return { x: pos.x, y: pos.y + 1, z: pos.z };
+      case "D":
+        return { x: pos.x, y: pos.y - 1, z: pos.z };
+      default:
+        return pos;
     }
   };
 
@@ -365,6 +373,12 @@ const EnergyMinimization: React.FC<EnergyMinimizationProps> = ({
                 <SelectItem value="simulated-annealing">
                   Simulated Annealing
                 </SelectItem>
+                <SelectItem value="ga">Genetic Algorithm (GA)</SelectItem>
+                <SelectItem value="es">Evolution Strategies (ES)</SelectItem>
+                <SelectItem value="ep">
+                  Evolutionary Programming (EP)
+                </SelectItem>
+                <SelectItem value="gp">Genetic Programming (GP)</SelectItem>
               </SelectContent>
             </Select>
           </div>
