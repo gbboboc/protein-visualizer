@@ -10,12 +10,23 @@ import {
 } from "@react-three/drei";
 import type { Direction } from "@/lib/types";
 import { directionToPosition } from "@/lib/utils";
+import type { ParsedPDB } from "@/lib/parsers/pdb-parser";
+import { getElementColor, getVdwRadius } from "@/lib/parsers/pdb-parser";
 // No THREE types needed since we removed runtime rotation
+
+export type PDBVisualizationType =
+  | "ball-and-stick"
+  | "cartoon"
+  | "space-filling"
+  | "stick";
 
 interface ProteinModelProps {
   sequence: string;
   directions?: Direction[];
   type: "2d" | "3d" | "ribbon" | "space-filling" | "surface";
+  // NEW: Optional PDB data for Rosetta results
+  pdbData?: ParsedPDB;
+  pdbVisualizationType?: PDBVisualizationType;
 }
 
 interface Position {
@@ -28,6 +39,8 @@ const ProteinModel: React.FC<ProteinModelProps> = ({
   sequence,
   directions,
   type,
+  pdbData,
+  pdbVisualizationType = "ball-and-stick",
 }) => {
   // Model is static; no rotation/animation refs required
 
@@ -96,6 +109,145 @@ const ProteinModel: React.FC<ProteinModelProps> = ({
     return points;
   }, [positions, type]);
 
+  // NEW: Render PDB data if provided
+  if (pdbData && pdbData.atoms.length > 0) {
+    // Center the PDB structure
+    const pdbCenter = useMemo(() => {
+      const x =
+        pdbData.atoms.reduce((sum, atom) => sum + atom.x, 0) /
+        pdbData.atoms.length;
+      const y =
+        pdbData.atoms.reduce((sum, atom) => sum + atom.y, 0) /
+        pdbData.atoms.length;
+      const z =
+        pdbData.atoms.reduce((sum, atom) => sum + atom.z, 0) /
+        pdbData.atoms.length;
+      return { x, y, z };
+    }, [pdbData]);
+
+    // Get CA atoms for cartoon/ribbon representation
+    const caAtoms = useMemo(() => {
+      return pdbData.atoms
+        .filter((atom) => atom.name === "CA")
+        .sort((a, b) => a.resSeq - b.resSeq);
+    }, [pdbData]);
+
+    // Ball and Stick rendering
+    if (pdbVisualizationType === "ball-and-stick") {
+      return (
+        <group position={[-pdbCenter.x, -pdbCenter.y, -pdbCenter.z]}>
+          {/* Render atoms as small spheres */}
+          {pdbData.atoms.map((atom, index) => (
+            <Sphere
+              key={`atom-${index}`}
+              position={[atom.x, atom.y, atom.z]}
+              args={[0.3, 16, 16]}
+            >
+              <meshStandardMaterial
+                color={getElementColor(atom.element)}
+                roughness={0.5}
+              />
+            </Sphere>
+          ))}
+
+          {/* Render bonds as lines */}
+          {pdbData.bonds.map(([i, j], index) => {
+            const atom1 = pdbData.atoms[i];
+            const atom2 = pdbData.atoms[j];
+            if (!atom1 || !atom2) return null;
+
+            return (
+              <Line
+                key={`bond-${index}`}
+                points={[
+                  [atom1.x, atom1.y, atom1.z],
+                  [atom2.x, atom2.y, atom2.z],
+                ]}
+                color="#666666"
+                lineWidth={1.5}
+              />
+            );
+          })}
+        </group>
+      );
+    }
+
+    // Cartoon/Ribbon rendering (backbone only)
+    if (pdbVisualizationType === "cartoon") {
+      const ribbonPoints: [number, number, number][] = caAtoms.map((atom) => [
+        atom.x,
+        atom.y,
+        atom.z,
+      ]);
+
+      return (
+        <group position={[-pdbCenter.x, -pdbCenter.y, -pdbCenter.z]}>
+          {/* Render smooth ribbon through CA atoms */}
+          {ribbonPoints.length > 1 && (
+            <Line points={ribbonPoints} color="#4dabf7" lineWidth={8} />
+          )}
+
+          {/* Mark CA positions */}
+          {caAtoms.map((atom, index) => (
+            <Sphere
+              key={`ca-${index}`}
+              position={[atom.x, atom.y, atom.z]}
+              args={[0.2, 12, 12]}
+            >
+              <meshStandardMaterial color="#4dabf7" roughness={0.4} />
+            </Sphere>
+          ))}
+        </group>
+      );
+    }
+
+    // Space-filling rendering (van der Waals radii)
+    if (pdbVisualizationType === "space-filling") {
+      return (
+        <group position={[-pdbCenter.x, -pdbCenter.y, -pdbCenter.z]}>
+          {pdbData.atoms.map((atom, index) => (
+            <Sphere
+              key={`atom-${index}`}
+              position={[atom.x, atom.y, atom.z]}
+              args={[getVdwRadius(atom.element) * 0.3, 24, 24]}
+            >
+              <meshStandardMaterial
+                color={getElementColor(atom.element)}
+                roughness={0.3}
+              />
+            </Sphere>
+          ))}
+        </group>
+      );
+    }
+
+    // Stick rendering (bonds only, no atoms)
+    if (pdbVisualizationType === "stick") {
+      return (
+        <group position={[-pdbCenter.x, -pdbCenter.y, -pdbCenter.z]}>
+          {pdbData.bonds.map(([i, j], index) => {
+            const atom1 = pdbData.atoms[i];
+            const atom2 = pdbData.atoms[j];
+            if (!atom1 || !atom2) return null;
+
+            return (
+              <Line
+                key={`bond-${index}`}
+                points={[
+                  [atom1.x, atom1.y, atom1.z],
+                  [atom2.x, atom2.y, atom2.z],
+                ]}
+                color="#888888"
+                lineWidth={3}
+              />
+            );
+          })}
+        </group>
+      );
+    }
+  }
+
+  // EXISTING: Render HP lattice (unchanged)
   return (
     <group position={[-center.x, -center.y, -center.z]}>
       {/* Render based on visualization type */}

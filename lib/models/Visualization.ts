@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import mongoose, { Schema, Document } from 'mongoose'
 
 interface IVisualization extends Document {
   proteinId: mongoose.Types.ObjectId

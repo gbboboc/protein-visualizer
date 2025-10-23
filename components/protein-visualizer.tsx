@@ -35,6 +35,7 @@ import {
   Share2,
   BarChart2,
   Layers,
+  Atom,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 
@@ -106,6 +107,23 @@ const ProteinVisualizer = () => {
   const { toast } = useToast();
   const { data: session } = useSession();
   const [comparisonSaved, setComparisonSaved] = useState(false);
+  // Rosetta job state
+  const [rosettaProtocol, setRosettaProtocol] = useState<string>("relax");
+  const [rosettaRepeats, setRosettaRepeats] = useState<number>(2);
+  const [rosettaSeed, setRosettaSeed] = useState<string>("");
+  const [rosettaBias, setRosettaBias] = useState<boolean>(true);
+  const [rosettaJobId, setRosettaJobId] = useState<string | null>(null);
+  const [rosettaStatus, setRosettaStatus] = useState<
+    "idle" | "queued" | "running" | "succeeded" | "failed"
+  >("idle");
+  const [rosettaPolling, setRosettaPolling] = useState<NodeJS.Timeout | null>(
+    null
+  );
+  const [rosettaPdbData, setRosettaPdbData] = useState<any>(null);
+  const [pdbVisualizationType, setPdbVisualizationType] = useState<
+    "ball-and-stick" | "cartoon" | "space-filling" | "stick"
+  >("ball-and-stick");
+  const [analysisMetrics, setAnalysisMetrics] = useState<any>(null);
 
   // Load saved proteins and comparisons from database on initial render
   useEffect(() => {
@@ -495,6 +513,124 @@ const ProteinVisualizer = () => {
     }
   };
 
+  const handleRunRosetta = async () => {
+    if (!sequence) {
+      toast({
+        title: "Sequence required",
+        description: "Enter a sequence, then try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setRosettaStatus("queued");
+      const response = await fetch("/api/rosetta/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sequence,
+          directions: directions ? parseDirections(directions) : undefined,
+          params: {
+            protocol: rosettaProtocol,
+            repeats: rosettaRepeats,
+            seed: rosettaSeed || undefined,
+            biasToDirections: rosettaBias,
+          },
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to queue Rosetta job");
+      const { jobId } = await response.json();
+      setRosettaJobId(jobId);
+      toast({ title: "Rosetta job queued", description: `Job ${jobId}` });
+
+      // start polling
+      if (rosettaPolling) clearInterval(rosettaPolling);
+      const t = setInterval(async () => {
+        const s = await fetch(`/api/rosetta/jobs/${jobId}`);
+        if (!s.ok) return;
+        const data = await s.json();
+        setRosettaStatus(data.status);
+        if (data.status === "succeeded" || data.status === "failed") {
+          clearInterval(t);
+          setRosettaPolling(null);
+          if (data.status === "succeeded") {
+            toast({ title: "Rosetta complete", description: "Result ready." });
+
+            // Fetch and parse PDB data for visualization
+            try {
+              const pdbRes = await fetch(`/api/rosetta/jobs/${jobId}/pdb`);
+              if (pdbRes.ok) {
+                const pdbText = await pdbRes.text();
+                const { parsePDB } = await import("@/lib/parsers/pdb-parser");
+                const parsed = parsePDB(pdbText);
+                setRosettaPdbData(parsed);
+
+                // Calculate analysis metrics if HP lattice data is available
+                if (directions && directions.length > 0) {
+                  try {
+                    const { analyzeHPAccuracy } = await import(
+                      "@/lib/parsers/structure-analysis"
+                    );
+                    // Parse directions if it's a string
+                    const directionsArray =
+                      typeof directions === "string"
+                        ? directions.split(",").map((d) => d.trim() as any)
+                        : directions;
+
+                    const analysis = analyzeHPAccuracy(
+                      sequence,
+                      directionsArray,
+                      parsed,
+                      undefined, // HP energy (not stored in ProteinSequence)
+                      data.energy
+                    );
+                    setAnalysisMetrics(analysis);
+                  } catch (analysisErr) {
+                    console.error("Failed to calculate analysis:", analysisErr);
+                  }
+                }
+              }
+            } catch (err) {
+              console.error("Failed to parse PDB:", err);
+            }
+          } else {
+            toast({
+              title: "Rosetta failed",
+              description: data.errorMessage || "Unknown error",
+              variant: "destructive",
+            });
+          }
+        }
+        if (data.status === "running") setRosettaStatus("running");
+      }, 2500);
+      setRosettaPolling(t);
+    } catch (e) {
+      setRosettaStatus("failed");
+      toast({
+        title: "Rosetta error",
+        description: String(e),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadRosettaPdb = async () => {
+    if (!rosettaJobId) return;
+    const res = await fetch(`/api/rosetta/jobs/${rosettaJobId}/pdb`);
+    if (!res.ok) {
+      toast({ title: "Download failed", variant: "destructive" });
+      return;
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${proteinName || "protein"}-rosetta.pdb`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleLoadProtein = (protein: ProteinSequence) => {
     setSequence(protein.sequence);
     setProteinName(protein.name || "Loaded Protein");
@@ -616,7 +752,7 @@ const ProteinVisualizer = () => {
 
           <Card className="p-6">
             <Tabs defaultValue="visualization" className="h-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="visualization">
                   <Layers className="w-4 h-4 mr-2" />
                   Visualization
@@ -632,6 +768,10 @@ const ProteinVisualizer = () => {
                 <TabsTrigger value="export">
                   <Download className="w-4 h-4 mr-2" />
                   Export
+                </TabsTrigger>
+                <TabsTrigger value="rosetta">
+                  <Atom className="w-4 h-4 mr-2" />
+                  Rosetta
                 </TabsTrigger>
               </TabsList>
 
@@ -809,6 +949,234 @@ const ProteinVisualizer = () => {
                     </CardContent>
                   </Card>
                 )}
+              </TabsContent>
+
+              <TabsContent
+                value="rosetta"
+                className="mt-4 h-[500px] overflow-y-auto"
+              >
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Protocol</Label>
+                      <Select
+                        value={rosettaProtocol}
+                        onValueChange={setRosettaProtocol as any}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="relax">Relax</SelectItem>
+                          <SelectItem value="fold">Fold</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Relax: Energy minimization & side-chain optimization.
+                        Fold: Monte Carlo-based ab initio folding.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Repeats</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={rosettaRepeats}
+                        onChange={(e) =>
+                          setRosettaRepeats(Number(e.target.value || 1))
+                        }
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Number of times to run the protocol. More repeats =
+                        better results but slower.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Seed (optional)</Label>
+                      <Input
+                        value={rosettaSeed}
+                        onChange={(e) => setRosettaSeed(e.target.value)}
+                        placeholder="random if empty"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Random seed for reproducibility. Same seed = same
+                        results.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Bias to Directions</Label>
+                      <Select
+                        value={rosettaBias ? "yes" : "no"}
+                        onValueChange={(v) => setRosettaBias(v === "yes")}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="yes">Yes</SelectItem>
+                          <SelectItem value="no">No</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Apply constraints based on HP model directions
+                        (R/L/U/D).
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleRunRosetta}
+                      disabled={!sequence || rosettaStatus === "running"}
+                    >
+                      Run Rosetta
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleDownloadRosettaPdb}
+                      disabled={rosettaStatus !== "succeeded" || !rosettaJobId}
+                    >
+                      Download PDB
+                    </Button>
+                  </div>
+
+                  <div className="text-sm text-gray-600">
+                    Status: {rosettaStatus}
+                    {rosettaJobId ? ` (job ${rosettaJobId})` : ""}
+                  </div>
+
+                  {/* Display Rosetta result when succeeded */}
+                  {rosettaStatus === "succeeded" && rosettaPdbData && (
+                    <div className="mt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-lg font-semibold">
+                          Rosetta Result (3D Structure)
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <Label className="text-sm">Style:</Label>
+                          <Select
+                            value={pdbVisualizationType}
+                            onValueChange={(v: any) =>
+                              setPdbVisualizationType(v)
+                            }
+                          >
+                            <SelectTrigger className="w-[160px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ball-and-stick">
+                                Ball & Stick
+                              </SelectItem>
+                              <SelectItem value="cartoon">Cartoon</SelectItem>
+                              <SelectItem value="space-filling">
+                                Space-Filling
+                              </SelectItem>
+                              <SelectItem value="stick">Stick</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="border rounded-lg overflow-hidden bg-gray-50">
+                        <Canvas
+                          camera={{ position: [0, 0, 30], fov: 50 }}
+                          style={{ height: "400px", width: "100%" }}
+                        >
+                          <OrbitControls enablePan enableZoom enableRotate />
+                          <ambientLight intensity={0.5} />
+                          <directionalLight
+                            position={[10, 10, 10]}
+                            intensity={0.8}
+                          />
+                          <directionalLight
+                            position={[-10, -10, -10]}
+                            intensity={0.3}
+                          />
+                          <ProteinModel
+                            sequence={sequence}
+                            type="3d"
+                            pdbData={rosettaPdbData}
+                            pdbVisualizationType={pdbVisualizationType}
+                          />
+                        </Canvas>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {rosettaPdbData.atoms.length} atoms •{" "}
+                        {rosettaPdbData.bonds.length} bonds
+                        {rosettaPdbData.title && ` • ${rosettaPdbData.title}`}
+                      </p>
+
+                      {/* Analysis Metrics */}
+                      {analysisMetrics && (
+                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <h4 className="font-semibold text-blue-900 mb-2">
+                            Structure Analysis
+                          </h4>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="text-gray-600">
+                                RMSD (HP vs Rosetta):
+                              </p>
+                              <p className="font-semibold text-lg">
+                                {analysisMetrics.metrics.rmsd.toFixed(2)} Å
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-gray-600">
+                                Alignment Quality:
+                              </p>
+                              <p className="font-semibold text-lg capitalize">
+                                {analysisMetrics.alignmentQuality}
+                                {analysisMetrics.alignmentQuality ===
+                                  "excellent" && " ✨"}
+                                {analysisMetrics.alignmentQuality === "good" &&
+                                  " ✓"}
+                              </p>
+                            </div>
+                            <div className="col-span-2">
+                              <p className="text-gray-600 mb-1">Residues:</p>
+                              <p className="font-semibold">
+                                {analysisMetrics.metrics.residueCount}
+                              </p>
+                            </div>
+                            {analysisMetrics.metrics.energyDifference !==
+                              undefined && (
+                              <div className="col-span-2">
+                                <p className="text-gray-600">
+                                  Energy Difference:
+                                </p>
+                                <p className="font-semibold">
+                                  {analysisMetrics.metrics.energyDifference.toFixed(
+                                    2
+                                  )}
+                                </p>
+                                <p className="text-xs text-gray-500 italic">
+                                  Note: HP and all-atom energies use different
+                                  scales
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-blue-200">
+                            <p className="text-xs font-semibold text-gray-700 mb-1">
+                              Insights:
+                            </p>
+                            <ul className="text-xs text-gray-600 space-y-1">
+                              {analysisMetrics.notes.map(
+                                (note: string, idx: number) => (
+                                  <li key={idx} className="flex items-start">
+                                    <span className="mr-1">•</span>
+                                    <span>{note}</span>
+                                  </li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </TabsContent>
             </Tabs>
           </Card>
