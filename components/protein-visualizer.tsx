@@ -33,6 +33,7 @@ import {
   Share2,
   BarChart2,
   Layers,
+  Atom,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 
@@ -693,7 +694,10 @@ const ProteinVisualizer = () => {
                   <Download className="w-4 h-4 mr-2" />
                   Export
                 </TabsTrigger>
-                <TabsTrigger value="rosetta">Rosetta</TabsTrigger>
+                <TabsTrigger value="rosetta">
+                  <Atom className="w-4 h-4 mr-2" />
+                  Rosetta
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="visualization" className="mt-4 h-[500px]">
@@ -863,9 +867,13 @@ const ProteinVisualizer = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="relax">Relax</SelectItem>
-                          <SelectItem value="minimize">Minimize</SelectItem>
+                          <SelectItem value="fold">Fold</SelectItem>
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Relax: Energy minimization & side-chain optimization.
+                        Fold: Monte Carlo-based ab initio folding.
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <Label>Repeats</Label>
@@ -878,6 +886,10 @@ const ProteinVisualizer = () => {
                           setRosettaRepeats(Number(e.target.value || 1))
                         }
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Number of times to run the protocol. More repeats =
+                        better results but slower.
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <Label>Seed (optional)</Label>
@@ -886,6 +898,10 @@ const ProteinVisualizer = () => {
                         onChange={(e) => setRosettaSeed(e.target.value)}
                         placeholder="random if empty"
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Random seed for reproducibility. Same seed = same
+                        results.
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <Label>Bias to Directions</Label>
@@ -901,6 +917,10 @@ const ProteinVisualizer = () => {
                           <SelectItem value="no">No</SelectItem>
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Apply constraints based on HP model directions
+                        (R/L/U/D/F/B).
+                      </p>
                     </div>
                   </div>
 

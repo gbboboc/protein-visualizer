@@ -48,19 +48,60 @@ def _apply_directional_constraints(pose, directions: list[str]):
     
     try:
         from pyrosetta.rosetta.core.scoring.constraints import (
-            CoordinateConstraint,
+            AtomPairConstraint,
             HarmonicFunc,
         )
         from pyrosetta.rosetta.core.id import AtomID
-        from pyrosetta.rosetta.numeric import xyzVector_double_t as Vector
+        from pyrosetta.rosetta.core.scoring import ScoreType
         
-        # Apply simple distance constraints based on directions
-        # This is a simplified version - you might want to enhance this
-        for i, direction in enumerate(directions, start=2):
-            if i <= pose.total_residue():
-                # Create a simple coordinate bias
-                # This is a placeholder - customize based on your HP model needs
-                pass
+        # Direction vectors for HP lattice model
+        direction_map = {
+            'R': (1, 0, 0),   # Right
+            'L': (-1, 0, 0),  # Left
+            'U': (0, 1, 0),   # Up
+            'D': (0, -1, 0),  # Down
+            'F': (0, 0, 1),   # Forward
+            'B': (0, 0, -1),  # Back
+        }
+        
+        # Apply distance constraints between consecutive residues
+        # to encourage the specified directions
+        constraint_weight = 5.0  # Weight for directional bias
+        target_distance = 3.8    # ~CA-CA distance in Angstroms
+        
+        for i, direction in enumerate(directions):
+            res_idx = i + 1  # Current residue (1-indexed)
+            next_res_idx = res_idx + 1
+            
+            if next_res_idx > pose.total_residue():
+                continue
+                
+            direction = direction.upper()
+            if direction not in direction_map:
+                print(f"Warning: Unknown direction '{direction}' at position {i}")
+                continue
+            
+            # Get CA atoms for both residues
+            try:
+                atom1 = AtomID(2, res_idx)      # CA of current residue (atom 2 is usually CA)
+                atom2 = AtomID(2, next_res_idx) # CA of next residue
+                
+                # Create harmonic constraint favoring the target distance
+                # The function creates a harmonic potential with minimum at target_distance
+                harmonic = HarmonicFunc(target_distance, 1.0)
+                constraint = AtomPairConstraint(atom1, atom2, harmonic)
+                
+                # Add constraint to pose
+                pose.add_constraint(constraint)
+                
+            except Exception as e:
+                print(f"Warning: Could not add constraint for residue {res_idx}: {e}")
+                continue
+        
+        # Add constraint score term to the pose's energy function
+        if pose.constraint_set().has_constraints():
+            print(f"Applied {len(directions)} directional constraints")
+        
     except Exception as e:
         print(f"Warning: Could not apply directional constraints: {e}")
 
@@ -93,6 +134,7 @@ def run_job(job_id: str):
         params = data.get("params", {})
         protocol = params.get("protocol", "relax")
         repeats = params.get("repeats", 1)
+        seed = params.get("seed")
         directions = data.get("directions", [])
         bias_to_directions = params.get("biasToDirections", True)
         
@@ -103,6 +145,16 @@ def run_job(job_id: str):
             # Initialize PyRosetta
             _init_pyrosetta()
             
+            # Set random seed if provided for reproducibility
+            if seed:
+                try:
+                    from pyrosetta.rosetta.numeric.random import rg
+                    seed_value = int(seed) if seed.isdigit() else hash(seed) % (2**31)
+                    rg().set_seed(seed_value)
+                    print(f"Set random seed to: {seed_value}")
+                except Exception as e:
+                    print(f"Warning: Could not set seed '{seed}': {e}")
+            
             # Import PyRosetta modules
             from pyrosetta import pose_from_sequence, get_fa_scorefxn
             from pyrosetta.rosetta.protocols.relax import FastRelax
@@ -112,12 +164,17 @@ def run_job(job_id: str):
             # Create pose from sequence
             pose = pose_from_sequence(sequence, "fa_standard")
             
+            # Get scoring function
+            scorefxn = get_fa_scorefxn()
+            
             # Apply directional constraints if requested
             if bias_to_directions and directions:
                 _apply_directional_constraints(pose, directions)
-            
-            # Get scoring function
-            scorefxn = get_fa_scorefxn()
+                # Enable constraint scoring if constraints were added
+                if pose.constraint_set().has_constraints():
+                    from pyrosetta.rosetta.core.scoring import ScoreType
+                    scorefxn.set_weight(ScoreType.atom_pair_constraint, 1.0)
+                    print("Enabled constraint scoring in energy function")
             
             # Apply the selected protocol
             if protocol == "relax":
