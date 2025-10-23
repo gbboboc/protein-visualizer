@@ -54,14 +54,12 @@ def _apply_directional_constraints(pose, directions: list[str]):
         from pyrosetta.rosetta.core.id import AtomID
         from pyrosetta.rosetta.core.scoring import ScoreType
         
-        # Direction vectors for HP lattice model
+        # Direction vectors for HP lattice model (2D)
         direction_map = {
             'R': (1, 0, 0),   # Right
             'L': (-1, 0, 0),  # Left
             'U': (0, 1, 0),   # Up
             'D': (0, -1, 0),  # Down
-            'F': (0, 0, 1),   # Forward
-            'B': (0, 0, -1),  # Back
         }
         
         # Apply distance constraints between consecutive residues

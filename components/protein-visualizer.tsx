@@ -99,6 +99,11 @@ const ProteinVisualizer = () => {
   const [rosettaPolling, setRosettaPolling] = useState<NodeJS.Timeout | null>(
     null
   );
+  const [rosettaPdbData, setRosettaPdbData] = useState<any>(null);
+  const [pdbVisualizationType, setPdbVisualizationType] = useState<
+    "ball-and-stick" | "cartoon" | "space-filling" | "stick"
+  >("ball-and-stick");
+  const [analysisMetrics, setAnalysisMetrics] = useState<any>(null);
 
   // Load saved proteins and comparisons from database on initial render
   useEffect(() => {
@@ -519,6 +524,44 @@ const ProteinVisualizer = () => {
           setRosettaPolling(null);
           if (data.status === "succeeded") {
             toast({ title: "Rosetta complete", description: "Result ready." });
+
+            // Fetch and parse PDB data for visualization
+            try {
+              const pdbRes = await fetch(`/api/rosetta/jobs/${jobId}/pdb`);
+              if (pdbRes.ok) {
+                const pdbText = await pdbRes.text();
+                const { parsePDB } = await import("@/lib/parsers/pdb-parser");
+                const parsed = parsePDB(pdbText);
+                setRosettaPdbData(parsed);
+
+                // Calculate analysis metrics if HP lattice data is available
+                if (directions && directions.length > 0) {
+                  try {
+                    const { analyzeHPAccuracy } = await import(
+                      "@/lib/parsers/structure-analysis"
+                    );
+                    // Parse directions if it's a string
+                    const directionsArray =
+                      typeof directions === "string"
+                        ? directions.split(",").map((d) => d.trim() as any)
+                        : directions;
+
+                    const analysis = analyzeHPAccuracy(
+                      sequence,
+                      directionsArray,
+                      parsed,
+                      undefined, // HP energy (not stored in ProteinSequence)
+                      data.energy
+                    );
+                    setAnalysisMetrics(analysis);
+                  } catch (analysisErr) {
+                    console.error("Failed to calculate analysis:", analysisErr);
+                  }
+                }
+              }
+            } catch (err) {
+              console.error("Failed to parse PDB:", err);
+            }
           } else {
             toast({
               title: "Rosetta failed",
@@ -919,7 +962,7 @@ const ProteinVisualizer = () => {
                       </Select>
                       <p className="text-xs text-muted-foreground">
                         Apply constraints based on HP model directions
-                        (R/L/U/D/F/B).
+                        (R/L/U/D).
                       </p>
                     </div>
                   </div>
@@ -944,6 +987,137 @@ const ProteinVisualizer = () => {
                     Status: {rosettaStatus}
                     {rosettaJobId ? ` (job ${rosettaJobId})` : ""}
                   </div>
+
+                  {/* Display Rosetta result when succeeded */}
+                  {rosettaStatus === "succeeded" && rosettaPdbData && (
+                    <div className="mt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-lg font-semibold">
+                          Rosetta Result (3D Structure)
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <Label className="text-sm">Style:</Label>
+                          <Select
+                            value={pdbVisualizationType}
+                            onValueChange={(v: any) =>
+                              setPdbVisualizationType(v)
+                            }
+                          >
+                            <SelectTrigger className="w-[160px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ball-and-stick">
+                                Ball & Stick
+                              </SelectItem>
+                              <SelectItem value="cartoon">Cartoon</SelectItem>
+                              <SelectItem value="space-filling">
+                                Space-Filling
+                              </SelectItem>
+                              <SelectItem value="stick">Stick</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="border rounded-lg overflow-hidden bg-gray-50">
+                        <Canvas
+                          camera={{ position: [0, 0, 30], fov: 50 }}
+                          style={{ height: "400px", width: "100%" }}
+                        >
+                          <OrbitControls enablePan enableZoom enableRotate />
+                          <ambientLight intensity={0.5} />
+                          <directionalLight
+                            position={[10, 10, 10]}
+                            intensity={0.8}
+                          />
+                          <directionalLight
+                            position={[-10, -10, -10]}
+                            intensity={0.3}
+                          />
+                          <ProteinModel
+                            sequence={sequence}
+                            type="3d"
+                            pdbData={rosettaPdbData}
+                            pdbVisualizationType={pdbVisualizationType}
+                          />
+                        </Canvas>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {rosettaPdbData.atoms.length} atoms •{" "}
+                        {rosettaPdbData.bonds.length} bonds
+                        {rosettaPdbData.title && ` • ${rosettaPdbData.title}`}
+                      </p>
+
+                      {/* Analysis Metrics */}
+                      {analysisMetrics && (
+                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <h4 className="font-semibold text-blue-900 mb-2">
+                            Structure Analysis
+                          </h4>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="text-gray-600">
+                                RMSD (HP vs Rosetta):
+                              </p>
+                              <p className="font-semibold text-lg">
+                                {analysisMetrics.metrics.rmsd.toFixed(2)} Å
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-gray-600">
+                                Alignment Quality:
+                              </p>
+                              <p className="font-semibold text-lg capitalize">
+                                {analysisMetrics.alignmentQuality}
+                                {analysisMetrics.alignmentQuality ===
+                                  "excellent" && " ✨"}
+                                {analysisMetrics.alignmentQuality === "good" &&
+                                  " ✓"}
+                              </p>
+                            </div>
+                            <div className="col-span-2">
+                              <p className="text-gray-600 mb-1">Residues:</p>
+                              <p className="font-semibold">
+                                {analysisMetrics.metrics.residueCount}
+                              </p>
+                            </div>
+                            {analysisMetrics.metrics.energyDifference !==
+                              undefined && (
+                              <div className="col-span-2">
+                                <p className="text-gray-600">
+                                  Energy Difference:
+                                </p>
+                                <p className="font-semibold">
+                                  {analysisMetrics.metrics.energyDifference.toFixed(
+                                    2
+                                  )}
+                                </p>
+                                <p className="text-xs text-gray-500 italic">
+                                  Note: HP and all-atom energies use different
+                                  scales
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-blue-200">
+                            <p className="text-xs font-semibold text-gray-700 mb-1">
+                              Insights:
+                            </p>
+                            <ul className="text-xs text-gray-600 space-y-1">
+                              {analysisMetrics.notes.map(
+                                (note: string, idx: number) => (
+                                  <li key={idx} className="flex items-start">
+                                    <span className="mr-1">•</span>
+                                    <span>{note}</span>
+                                  </li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>
